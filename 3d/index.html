@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css?v=2">
   <link rel="stylesheet" href="./story.css?v=1">
+  <link rel="stylesheet" href="./polish.css?v=2">
   <script>
     window.__ecoErrors = [];
     window.addEventListener('error', function(event) {
@@ -27,12 +28,12 @@
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}
   </script>
-  <script type="module" src="./game.js?v=3"></script>
+  <script type="module" src="./game.js?v=5"></script>
 </head>
 <body>
   <div class="shell" id="app">
     <header class="masthead">
-      <a class="wordmark" href="../../" aria-label="Открыть основную версию Эко-Фермы">
+      <a class="wordmark" href="../classic/" aria-label="Открыть основную версию Эко-Фермы">
         <svg class="mark" viewBox="0 0 44 44" fill="none" aria-hidden="true">
           <rect width="44" height="44" rx="13" fill="#234838"/>
           <path d="M22 35V15M22 26C12 25 10 18 11 12c8 1 12 6 11 14ZM22 22c1-10 7-13 13-12-1 8-5 13-13 14" stroke="#EAEEC6" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -43,8 +44,8 @@
       <span class="separator" aria-hidden="true"></span>
       <span class="context-label">Двор № 1 <span class="context-dot">·</span> Семь историй</span>
       <div class="header-right">
-        <span class="build-chip" title="Первый этап разработки"><span class="build-dot"></span> История 02</span>
-        <a class="back-link" href="../../" aria-label="Открыть предыдущую версию игры">Старая версия <span aria-hidden="true">↗</span></a>
+        <span class="build-chip" title="Полная семидневная история"><span class="build-dot"></span> 3D · Полная версия</span>
+        <a class="back-link" href="../classic/" aria-label="Открыть предыдущую версию игры">Старая версия <span aria-hidden="true">↗</span></a>
       </div>
     </header>
 
@@ -110,6 +111,10 @@
       <main class="world" aria-label="Трёхмерный двор Эко-Фермы">
         <div class="world-top">
           <div class="world-title"><span class="world-title-mark"></span><div><strong>Маленький двор</strong><small>День за днём здесь становится уютнее</small></div></div>
+          <div class="world-settings" role="group" aria-label="Настройки отображения и звука">
+            <button id="soundToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить звуковые эффекты">Звук выкл</button>
+            <button id="qualityToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить экономный режим отображения">Графика</button>
+          </div>
           <div class="camera-tools" role="group" aria-label="Управление камерой">
             <button type="button" id="cameraLeft" aria-label="Повернуть камеру влево" title="Повернуть влево">↶</button>
             <button type="button" id="cameraRight" aria-label="Повернуть камеру вправо" title="Повернуть вправо">↷</button>
@@ -122,7 +127,7 @@
         </div>
 
         <div class="world-footer">
-          <div class="scene-hint"><span class="gesture-icon" aria-hidden="true">↗</span><span>Выбирай вещи и объекты в 3D <span class="hint-divider">·</span> Потяни фон, чтобы повернуть двор</span></div>
+          <div class="scene-hint"><span class="gesture-icon" aria-hidden="true">↗</span><span>Выбирай вещи и объекты в 3D <span class="hint-divider">·</span> Поверни двор жестом</span></div>
           <div class="world-foot-right"><span id="sunLabel">Тихое утро</span><span class="foot-dot"></span><span>3D-сцена</span></div>
         </div>
 
