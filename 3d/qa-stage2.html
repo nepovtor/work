@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Эко-Ферма 3D — проверка семи дней</title>
+<style>
+  *{box-sizing:border-box}body{background:#f3f5ec;color:#244333;font:14px/1.6 system-ui,sans-serif;max-width:950px;margin:auto;padding:24px}
+  h1{font-size:25px;letter-spacing:-1px}p{color:#667d6a}
+  #summary{background:white;border:1px solid #cad8cb;border-left:5px solid #8ea995;padding:14px;border-radius:9px;font-weight:750}
+  #results{list-style:none;padding:0;display:grid;gap:7px}li{border:1px solid #dee8dc;border-left:4px solid #aac8a8;padding:10px 15px;border-radius:8px;background:#fff}
+  li.fail{border-left-color:#bd695f}li.pass{border-left-color:#4f9b65}
+  iframe{width:100%;height:520px;border:1px solid #cadbca;border-radius:10px;background:#e5eddd}a{color:#266242}
+</style>
+</head>
+<body>
+<h1>Этап 2 · Семь игровых дней</h1>
+<p>Изолированный прогон всех глав. Тест использует временные ключи сохранения и не меняет обычный игровой прогресс.</p>
+<div id="summary" role="status">Проверка запущена…</div>
+<ol id="results" aria-label="Ход проверки"></ol>
+<iframe id="game" title="Тестовый 3D-двор"></iframe>
+<p><a href="./">Открыть обычную игру</a></p>
+<script>
+(async()=>{
+  const stageKey='ecoFarm3D.stage1.qa',storyKey='ecoFarm3D.story.qa';
+  const frame=document.getElementById('game');
+  const summary=document.getElementById('summary');
+  const results=document.getElementById('results');
+  const tests=[];
+  const pause=n=>new Promise(resolve=>setTimeout(resolve,n));
+  const doc=()=>frame.contentDocument;
+  const input=()=>frame.contentWindow;
+  const wait=async (fn,ms=12000)=>{
+    const start=Date.now();
+    while(Date.now()-start<ms){try{const r=fn();if(r)return r}catch{}await pause(65)}
+    let detail='';
+    try{detail=' [ready='+doc()?.readyState+', errors='+JSON.stringify(input().__ecoErrors)+', selected='+doc()?.querySelectorAll('.object-item').length+', day='+getDay()+']'}catch(e){detail=' '+e.message}
+    throw new Error('Тайм-аут'+detail);
+  };
+  function report(name,pass,detail=''){
+    const li=document.createElement('li');li.className=pass?'pass':'fail';
+    li.textContent=(pass?'✓ ':'✕ ')+name+(detail?' — '+detail:'');
+    results.appendChild(li);tests.push({name,pass});
+  }
+  async function run(name,fn){try{const r=await fn();report(name,true,r||'')}catch(e){report(name,false,e.message);throw e}}
+  function getDay(){return doc().getElementById('dayTag')?.textContent?.trim()}
+  function click(selector){
+    const el=doc().querySelector(selector);
+    if(!el)throw new Error('Нет элемента '+selector);
+    if(el.disabled)throw new Error('Кнопка неактивна '+selector);
+    el.click();
+  }
+  function select(name){
+    const b=[...doc().querySelectorAll('.object-item')].find(x=>x.textContent.includes(name));
+    if(!b||b.disabled)throw new Error('Предмет не найден: '+name);
+    b.click();
+  }
+  function bin(id){click('[data-bin="'+id+'"]')}
+  function act(action,id){
+    const sel='[data-story-action="'+action+'"]'+(id!=null?'[data-story-id="'+id+'"]':'');
+    click(sel);
+  }
+  const next=async(day)=>{
+    await wait(()=>doc().querySelector('[data-story-action="next"]'));
+    act('next',''); await wait(()=>getDay().startsWith('ДЕНЬ '+String(day).padStart(2,'0')));
+  };
+  async function sort(name,id,n){
+    select(name);bin(id);
+    await wait(()=>doc().getElementById('missionCount')?.textContent.trim()===n+' / 6',7500);
+  }
+  const credits=()=>+(doc().getElementById('storyFunds').textContent.match(/\d+/)?.[0]||0);
+  function assert(value,msg){if(!value)throw new Error(msg)}
+  try {
+    localStorage.removeItem(stageKey);
+    localStorage.removeItem(storyKey);
+    frame.src='./index.html?qa=1';
+    await run('Загрузилась 3D-игра и карта семи глав',async()=>{
+      await wait(()=>doc()?.querySelectorAll('.object-item').length===6&&doc()?.querySelectorAll('.chapter-node').length===7,25000);
+      return 'день 1, 6 предметов, 7 глав';
+    });
+    await run('Первый день: неправильная сортировка без штрафа',async()=>{
+      select('Старая газета');bin('glass');
+      await wait(()=>!doc().getElementById('learningNote').hidden);
+      assert(doc().getElementById('missionCount').textContent.trim()==='0 / 6','Ошибка увеличила счёт');
+    });
+    await run('День 1: все шесть предметов можно разобрать',async()=>{
+      await sort('Старая газета','paper',1);
+      await sort('Картонная коробка','paper',2);
+      await sort('ПЭТ-бутылка','plastic',3);
+      await sort('Стеклянная банка','glass',4);
+      await sort('Металлическая банка','metal',5);
+      await sort('Батарейка','special',6);
+      await wait(()=>doc().querySelector('[data-story-action="next"]'));
+      return '6 / 6';
+    });
+    await run('Переход на день 2',async()=>{await next(2)});
+    await run('День 2: собирается макулатура',async()=>{
+      for(const id of ['school','library','workshop'])act('paper',id);
+      await wait(()=>doc().getElementById('storyCounter').textContent.trim()==='3 / 3');
+      assert(credits()===24,'Ожидалось 24 очка, получено '+credits());
+      return '3 пачки, 24 очка';
+    });
+    await run('Переход на день 3',async()=>{await next(3)});
+    await run('День 3: неверный ответ не приносит очков',async()=>{
+      act('answer','1');assert(credits()===24,'баланс изменился');
+      assert(doc().getElementById('storyCounter').textContent.trim()==='0 / 3','прогресс изменился');
+    });
+    await run('День 3: три правильных экологических решения',async()=>{
+      for(const id of ['0','1','2'])act('answer',id);
+      assert(doc().getElementById('storyCounter').textContent.trim()==='3 / 3','нет полного прогресса');
+      assert(credits()===42,'ожидался баланс 42, фактически '+credits());
+    });
+    await run('Переход на день 4',async()=>{await next(4)});
+    await run('День 4: установка скамейки',async()=>{
+      act('bench','tree');
+      assert(credits()===26,'стоимость не списалась');
+      assert(doc().getElementById('storyCounter').textContent.trim()==='1 / 1','скамейка не построена');
+    });
+    await run('Переход на день 5',async()=>{await next(5)});
+    await run('День 5: обмен книгами',async()=>{
+      act('book','atlas');act('book','stories');
+      assert(credits()===40,'ожидалось 40, фактически '+credits());
+    });
+    await run('История сохраняется после перезагрузки',async()=>{
+      const done=new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));
+      frame.contentWindow.location.reload();
+      await done;
+      await wait(()=>getDay()?.startsWith('ДЕНЬ 05')&&credits()===40,22000);
+      assert(doc().getElementById('storyCounter').textContent.trim()==='2 / 2','книги не сохранились');
+      return 'день 5, 40 очков';
+    });
+    await run('Переход на день 6',async()=>{await next(6)});
+    await run('День 6: три посадки с учётом бюджета',async()=>{
+      for(const id of ['shade','courtyard','garden'])act('plant',id);
+      assert(credits()===10,'неверный баланс после посадок');
+      assert(doc().getElementById('storyCounter').textContent.trim()==='3 / 3','не все растения посажены');
+    });
+    await run('Переход на день 7',async()=>{await next(7)});
+    await run('День 7: приглашение трёх соседей',async()=>{
+      for(const id of ['lena','timur','ira'])act('invite',id);
+      assert(credits()===25,'ожидалось 25, фактически '+credits());
+      assert(doc().getElementById('storyCounter').textContent.trim()==='3 / 3','не все приглашены');
+    });
+    await run('Финал отображается и сохраняется',async()=>{
+      assert(!!doc().querySelector('.story-finale'),'отсутствует финал');
+      const saved=JSON.parse(localStorage.getItem(storyKey)||'{}');
+      assert(saved.day===7&&saved.final===true&&saved.invited?.length===3,'неверные данные в localStorage');
+      return '7/7, финал, 25 очков';
+    });
+    await run('Новый старт сбрасывает сюжет без ошибок',async()=>{
+      click('#restart');
+      await wait(()=>getDay().startsWith('ДЕНЬ 01'));
+      assert(credits()===0,'баланс не сброшен');
+      assert(doc().getElementById('missionCount').textContent.trim()==='0 / 6','первый день не сброшен');
+    });
+  }catch(e){}
+  finally{
+    const good=tests.filter(t=>t.pass).length;
+    summary.textContent='Проверки: '+good+' / '+tests.length+' успешно'+(good===tests.length?' — весь семидневный цикл пройден':' — найдено препятствие');
+    summary.style.borderLeftColor=good===tests.length?'#4a9f69':'#c25f51';
+    localStorage.removeItem(stageKey);localStorage.removeItem(storyKey);
+  }
+})();
+</script>
+</body>
+</html>
