@@ -263,3 +263,47 @@
 @media(prefers-reduced-motion:reduce){
   .scene-bin-chip,.object-item{transition:none!important}
 }
+
+/* Refinement: reclaim vertical space for the 3D scene. */
+.scene-bin-chip{gap:10px;font-size:13px}
+.chip-mark{
+  width:7px;min-width:7px;height:27px;display:block;
+  font-size:0;text-shadow:none;border-radius:99px;box-shadow:none;
+}
+.scene-bin-subtitle{
+  min-width:0;max-width:56%;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;text-align:right;
+}
+@media(max-width:850px){
+  .world{flex-basis:54%}
+  .world-top{
+    display:flex;flex-direction:row;align-items:center;
+    justify-content:space-between;flex-wrap:nowrap;
+    padding:12px 12px 0;gap:7px;
+  }
+  .world-title{grid-column:auto;display:flex;flex:1 1 auto;min-width:0;margin:0}
+  .world-title small{display:none}
+  .world-settings{grid-column:auto;display:flex;flex:0 0 auto;margin:0;gap:6px}
+  .camera-tools{grid-column:auto;display:flex;flex:0 0 auto;gap:5px;margin:0}
+  .hud-option,.camera-tools button{height:44px;min-height:44px}
+  .scene-bin-scroll{grid-auto-columns:minmax(112px,33vw)}
+  .scene-bin-chip{min-height:52px}
+  .panel{flex:1 1 46%}
+  .inventory .eyebrow{font:800 13px/1.35 var(--type);letter-spacing:-.15px;color:#2e6040}
+  .inventory .hint-small{font-size:11px}
+}
+@media(max-width:680px){
+  .world-title{display:none}
+  .world-settings{margin-right:auto}
+  .camera-tools{margin-left:auto}
+  .build-chip{display:none}
+}
+@media(max-width:390px){
+  .world-top{padding:10px 10px 0}
+  .scene-bin-scroll{grid-auto-columns:minmax(111px,39vw)}
+  .scene-bin-subtitle{max-width:49%}
+}
+@media(max-height:630px) and (max-width:850px) and (orientation:portrait){
+  .world{flex-basis:52%}
+  .panel{flex-basis:48%}
+}
