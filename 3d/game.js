@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createStory } from './story.js';
-import { createPolish } from './polish.js?v=2';
+import { createPolish } from './polish.js?v=3';
 import { createArtWorld } from './art-world.js';
 
 /**
