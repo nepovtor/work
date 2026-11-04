@@ -53,9 +53,15 @@ body,button{touch-action:manipulation}
   .world-top {gap:6px;padding:9px}
   .hud-option {font-size:9px;gap:3px}
   .camera-tools{gap:3px}
-  .camera-tools button {min-width:40px;width:40px;min-height:40px;height:40px}
+  .camera-tools button {min-width:44px;width:44px;min-height:44px;height:44px}
   .scene-hint .hint-divider {display:none}
 }
 @media (prefers-reduced-motion: reduce){
   .world-settings button,.camera-tools button,.story-choice{transition:none!important;transform:none!important}
+}
+
+@media(max-width:370px){
+  .hud-option {width:44px;min-width:44px;min-height:44px;padding:8px;justify-content:center}
+  .hud-option>span:not(.hud-control-icon){display:none}
+  .camera-tools button{min-height:44px;height:44px;min-width:44px;width:44px}
 }
