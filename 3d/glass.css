@@ -294,3 +294,15 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--glass-focus);outlin
 @media (prefers-reduced-motion:reduce){
   .scene-bin-chip,.object-item,.hud-option,.camera-tools button{transition:none!important}
 }
+
+/* SVG remains vector-sharp at any device pixel ratio. */
+.hud-control-icon,.camera-tools button svg{display:flex;align-items:center;justify-content:center}
+.hud-control-icon svg{display:block;width:22px;height:22px}
+.camera-tools button svg{width:22px;height:22px}
+@media (max-width:850px){
+  .hud-control-icon{width:22px;height:22px}
+  .camera-tools button svg{width:22px;height:22px}
+  .scene-bin-chip:focus-visible,.object-item:focus-visible{
+    outline:3px solid #a95633;outline-offset:2px;
+  }
+}
