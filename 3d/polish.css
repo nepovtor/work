@@ -65,3 +65,7 @@ body,button{touch-action:manipulation}
   .hud-option>span:not(.hud-control-icon){display:none}
   .camera-tools button{min-height:44px;height:44px;min-width:44px;width:44px}
 }
+
+/* Accessible pointer targets; icon buttons remain usable at desktop sizes. */
+.camera-tools button{min-width:44px;min-height:44px;width:44px;height:44px}
+.hud-option{min-height:44px}
