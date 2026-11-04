@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>QA — Эко-Ферма 3D</title>
+  <style>
+    :root{font-family:system-ui,sans-serif;color:#213e30;background:#f3f5ed}
+    *{box-sizing:border-box}
+    body{max-width:860px;padding:30px 22px;margin:auto}
+    h1{font-size:25px;letter-spacing:-.8px}
+    p{line-height:1.6;color:#607060}
+    #summary{background:white;padding:16px;border:1px solid #cad5c8;border-radius:12px;font-weight:700}
+    #results{list-style:none;padding:0;display:grid;gap:8px}
+    li{padding:11px 15px;border-radius:8px;background:white;border:1px solid #dde5d9;font-size:14px}
+    li.pass{border-left:4px solid #4c9a6a}
+    li.fail{border-left:4px solid #cd5f4d}
+    iframe{width:100%;height:500px;border:1px solid #c9d8c5;border-radius:13px;background:#dbe9d4}
+    a{color:#2b6951}
+  </style>
+</head>
+<body>
+  <h1>Проверка игровой механики · Этап 1</h1>
+  <p>Изолированный тест прохода сортировки. Использует отдельный ключ локального сохранения и не затрагивает прогресс игрока.</p>
+  <div id="summary" role="status">Запуск проверок…</div>
+  <ol id="results" aria-label="Результаты проверок"></ol>
+  <iframe id="game" title="Тестовый экземпляр Эко-Фермы 3D" src="./index.html?qa=1"></iframe>
+  <p><a href="./">Вернуться к 3D-игре</a></p>
+  <script>
+  (async()=>{
+    const KEY='ecoFarm3D.stage1.qa';
+    const frame=document.getElementById('game');
+    const results=document.getElementById('results');
+    const summary=document.getElementById('summary');
+    const log=(name,pass,detail='')=>{
+      const el=document.createElement('li');
+      el.className=pass?'pass':'fail';
+      el.textContent=(pass?'✓ ':'✕ ')+name+(detail?' — '+detail:'');
+      results.appendChild(el);
+      tests.push({name,pass,detail});
+    };
+    const tests=[];
+    const pause=(ms)=>new Promise(r=>setTimeout(r,ms));
+    const until=async(fn,ms=10000)=>{
+      let start=Date.now();while(Date.now()-start<ms){
+        try{const v=fn();if(v)return v}catch{}
+        await pause(90);
+      }
+      let diag='';
+      try {
+        const d=doc();
+        diag='document='+d?.readyState+
+          ', objects='+d?.querySelectorAll('.object-item').length+
+          ', canvas='+d?.querySelectorAll('canvas').length+
+          ', loading='+JSON.stringify(d?.getElementById('loading')?.textContent?.slice(0,120))+
+          ', errors='+JSON.stringify(frame.contentWindow.__ecoErrors||[]);
+      }catch(e){diag=String(e)}
+      throw Error('Время ожидания истекло ('+diag+')');
+    };
+    const doc=()=>frame.contentDocument;
+    const count=()=>doc().getElementById('missionCount')?.textContent.trim();
+    const choose=(name)=>{
+      const btn=[...doc().querySelectorAll('.object-item')].find(x=>x.textContent.includes(name));
+      if(!btn||btn.disabled)throw Error('Недоступен предмет: '+name);
+      btn.click();
+
+    };
+    const drop=(type)=>{const bin=doc().querySelector('[data-bin="'+type+'"]');if(!bin)throw Error('Нет контейнера '+type);bin.click()};
+    const waitCount=(n)=>until(()=>count()===n+' / 6',6500);
+    const run=async(name,fn)=>{
+      try{const detail=await fn();log(name,true,detail||'')}
+      catch(e){log(name,false,e.message||String(e));throw e}
+    };
+    try {
+      localStorage.removeItem(KEY);
+      frame.addEventListener('load',()=>{}, {once:true});
+      await run('3D-страница загрузилась', async()=>{
+        await until(()=>doc()?.querySelectorAll('.object-item').length===6,18000);
+        return '6 предметов';
+      });
+      await run('Все контейнеры доступны',async()=>{
+        const n=doc().querySelectorAll('.bin-button').length;
+        if(n!==5)throw Error('найдено '+n);
+        return '5 категорий';
+      });
+      await run('Выбор газеты', async()=>{
+        choose('Старая газета');
+        if(![...doc().querySelectorAll('.object-item')].some(x=>x.textContent.includes('Старая газета')&&x.getAttribute('aria-pressed')==='true'))throw Error('не выделена');
+      });
+      await run('Неверная сортировка без штрафа',async()=>{
+        drop('glass');
+        await until(()=>!doc().getElementById('learningNote').hidden);
+        if(count()!=='0 / 6')throw Error('счётчик изменился');
+        if(!doc().getElementById('noteText').textContent.includes('бумажн'))throw Error('нет объяснения');
+      });
+      await run('Газета в сборе бумаги',async()=>{
+        drop('paper');await waitCount(1);
+        if(!doc().getElementById('noteText').textContent.includes('макулатур'))throw Error('нет обучающего объяснения');
+      });
+      await run('Картон в сборе бумаги',async()=>{choose('Картонная коробка');drop('paper');await waitCount(2)});
+      await run('Прогресс переживает перезагрузку',async()=>{
+        await new Promise((resolve)=>{frame.addEventListener('load',resolve,{once:true});frame.contentWindow.location.reload()});
+        await until(()=>doc()?.querySelectorAll('.object-item').length===6,18000);
+        if(count()!=='2 / 6')throw Error('получено '+count());
+      });
+      await run('ПЭТ-бутылка → пластик',async()=>{choose('ПЭТ-бутылка');drop('plastic');await waitCount(3)});
+      await run('Стеклянная банка → стекло',async()=>{choose('Стеклянная банка');drop('glass');await waitCount(4)});
+      await run('Металлическая банка → металл',async()=>{choose('Металлическая банка');drop('metal');await waitCount(5)});
+      await run('Батарейка → отдельный сбор',async()=>{choose('Батарейка');drop('special');await waitCount(6)});
+      await run('Появляется финальный экран',async()=>{await until(()=>!doc().getElementById('complete').hidden,6000)});
+      await run('Повторное прохождение',async()=>{
+        doc().getElementById('restart').click();
+        await waitCount(0);
+        choose('Батарейка');drop('special');await waitCount(1);
+      });
+    }catch(e){}
+    finally {
+      const passed=tests.filter(x=>x.pass).length;
+      summary.textContent='Проверки: '+passed+' / '+tests.length+' успешно'+(passed!==tests.length?' — найдено препятствие':' — весь путь пройден');
+      summary.style.borderLeft='5px solid '+(passed===tests.length?'#4a9c62':'#cc5a4b');
+      localStorage.removeItem(KEY);
+    }
+  })();
+  </script>
+</body>
+</html>
