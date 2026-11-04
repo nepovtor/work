@@ -24,7 +24,7 @@
     padding:9px 9px;
     text-align:left;
     align-items:center;
-    font-size:clamp(11px,2.8vw,13px);
+    font-size:12px;
     line-height:1.15;
     scroll-snap-align:none;
     gap:7px;
