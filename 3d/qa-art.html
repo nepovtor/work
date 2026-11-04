@@ -41,6 +41,12 @@ a{color:#315c3c}
     await wait(()=>scene()&&d().querySelectorAll('.object-item').length===6);
     assert(w().__eco3dDiagnostics().rendered===true,'WebGL недоступен');
   });
+  await test('Основание больше не перекрывает траву и мощёные дорожки',()=>{
+    const a=w().__eco3dBinAudit().groundLayers;
+    assert(a&&a.plinthTop<a.grassTop&&a.plinthTop<a.pathTop,
+      'основание перекрывает детали: '+JSON.stringify(a));
+    return 'основание '+a.plinthTop.toFixed(2)+', трава '+a.grassTop.toFixed(2)+', дорожки '+a.pathTop.toFixed(2);
+  });
   await test('Черепица и каменные дорожки сделаны геометрией',()=>{
     const a=scene();assert(a.roofTiles>=100,'нет наборной черепицы '+a.roofTiles);
     assert(a.stonePieces>=300,'не хватает каменных деталей '+a.stonePieces);
