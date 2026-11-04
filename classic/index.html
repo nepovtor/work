@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <base href="../">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лесная история — вырасти свой лес</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        body { 
+            font-family: 'Comfortaa', cursive; 
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 40%, #a3e4d7 70%, #52be80 100%);
+            min-height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bg-decor { position: absolute; z-index: 1; pointer-events: none; filter: drop-shadow(5px 15px 10px rgba(0,0,0,0.3)); opacity: 0.8; }
+        .bg-tree1 { font-size: 150px; bottom: -20px; left: 2%; }
+        .bg-tree2 { font-size: 200px; bottom: -30px; right: 2%; }
+        .bg-tree3 { font-size: 80px; bottom: 10%; left: 15%; opacity: 0.5; }
+        .bg-cloud { font-size: 120px; top: 10%; left: 10%; opacity: 0.7; animation: floatCloud 20s linear infinite; }
+        .bg-sun { font-size: 100px; top: 5%; right: 10%; animation: spin 30s linear infinite; }
+
+        @keyframes floatCloud { 0% { transform: translateX(0); } 50% { transform: translateX(50px); } 100% { transform: translateX(0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .app { 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 15px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
+            width: 95%; 
+            max-width: 1000px; 
+            height: 95vh; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            position: relative; 
+            z-index: 10;
+        }
+
+        .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; }
+        .login-screen h2 { color: #2E8B57; font-size: 28px; margin-bottom: 10px; }
+        .login-screen input { padding: 15px; font-size: 16px; border: 2px solid #a5d6a7; border-radius: 12px; width: 100%; max-width: 300px; margin-bottom: 15px; outline: none; }
+        .login-screen button { width: 100%; max-width: 300px; padding: 15px; font-size: 18px; border-radius: 12px; background: #2E8B57; color: white; border: none; cursor: pointer; font-weight: bold; }
+
+        #mainGame { display: none; flex-direction: row; gap: 15px; height: 100%; }
+        
+        .sidebar { width: 230px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; overflow-y: auto; }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: #a5d6a7; border-radius: 4px; }
+        
+        .header { background: #e8f5e9; padding: 10px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 14px; border: 2px solid #a5d6a7; margin-bottom: 5px;}
+        .currency { display: flex; justify-content: space-around; font-weight: bold; margin-top: 5px; }
+        
+        .tab-btn { width: 100%; padding: 10px; border: none; background: #e0e0e0; border-radius: 10px; cursor: pointer; font-family: 'Comfortaa'; font-weight: bold; font-size: 13px; text-align: left; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .tab-btn.active { background: #2E8B57; color: white; }
+        .tab-btn.disabled { opacity: 0.5; cursor: not-allowed; background: #ccc; }
+        
+        .action-btn { padding: 12px; font-size: 14px; background: #2E8B57; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .action-btn.secondary { background: #2193b0; }
+        .action-btn.warning { background: #FF8C00; }
+        .action-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+        .content-area { flex: 1; display: flex; flex-direction: column; gap: 10px; overflow: hidden; position: relative; }
+        .screen { display: none; flex-direction: column; gap: 10px; height: 100%; overflow-y: auto; padding-right: 5px;}
+        .screen.active { display: flex; }
+        .screen::-webkit-scrollbar { width: 6px; }
+        .screen::-webkit-scrollbar-thumb { background: #a5d6a7; border-radius: 6px; }
+
+        .info-panel { background: #fff; border: 2px solid #a5d6a7; border-radius: 10px; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #2E8B57; }
+
+        /* Лес */
+        .forest-view { flex: 1; position: relative; overflow: hidden; border: 4px solid #8B4513; border-radius: 15px; transition: background 1s; }
+        .weather-sunny { background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 40%, #a3e4d7 70%, #52be80 100%); }
+        .weather-rain { background: linear-gradient(to bottom, #757F9A 0%, #D7DDE8 70%, #52be80 100%); }
+        .weather-snow { background: linear-gradient(to bottom, #E0EAFC 0%, #CFDEF3 70%, #fff 100%); }
+
+        .weather-effect { position: absolute; pointer-events: none; z-index: 2; }
+        .rain-drop { background: rgba(255,255,255,0.7); width: 2px; height: 15px; animation: rainFall linear infinite; }
+        .snow-flake { color: white; font-size: 14px; animation: snowFall linear infinite; }
+        @keyframes rainFall { 0% { transform: translateY(-100px); opacity: 1; } 100% { transform: translateY(400px); opacity: 0; } }
+        @keyframes snowFall { 0% { transform: translateY(-100px) rotate(0deg); opacity: 1; } 100% { transform: translateY(400px) rotate(360deg); opacity: 0; } }
+
+        .sun-game { position: absolute; top: 20px; left: 20px; width: 60px; height: 60px; background: radial-gradient(circle, #fff700, #ff8c00); border-radius: 50%; box-shadow: 0 0 30px #ff8c00; z-index: 1; }
+        
+        .forest-view::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 80px; background: linear-gradient(to top, #4e342e, #6d4c41); z-index: 3; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; pointer-events: none;}
+        
+        /* Деревья */
+        .plant { position: absolute; filter: drop-shadow(3px 8px 5px rgba(0,0,0,0.4)); transition: all 1s; transform-origin: bottom center; }
+        .swaying { animation: sway 3s infinite alternate ease-in-out; }
+        @keyframes sway { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+        
+        .decor-item { position: absolute; z-index: 6; filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.3)); cursor: grab; font-size: 30px; touch-action: none; }
+        .decor-item:active { cursor: grabbing; transform: scale(1.1); }
+
+        .inhabitant { position: absolute; font-size: 30px; z-index: 5; filter: drop-shadow(2px 5px 3px rgba(0,0,0,0.4)); transition: all 0.5s; }
+        @keyframes run { 0% { transform: translateX(0); } 100% { transform: translateX(200px); } }
+        @keyframes fly { 0% { transform: translateY(0); } 100% { transform: translateY(-20px); } }
+        @keyframes jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        .landscape-item { position: absolute; z-index: 2; pointer-events: none; }
+        .river { bottom: 60px; left: 0; width: 100%; height: 80px; background: linear-gradient(to bottom, #4facfe, #00f2fe); border-top: 4px solid #2193b0; border-bottom: 4px solid #2193b0; animation: flow 10s linear infinite; }
+        @keyframes flow { 0% { background-position: 0 0; } 100% { background-position: 100px 0; } }
+        .mountain-bg { bottom: 80px; left: 0; width: 100%; height: 100px; background: #ccc; clip-path: polygon(0 100%, 20% 0, 40% 100%, 60% 0, 80% 100%, 100% 50%, 100% 100%); opacity: 0.5; }
+
+        .pet { position: absolute; font-size: 40px; z-index: 7; filter: drop-shadow(2px 5px 3px rgba(0,0,0,0.4)); transition: all 0.5s; }
+        .pet-name { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 12px; background: white; padding: 2px 6px; border-radius: 10px; font-weight: bold; white-space: nowrap; border: 1px solid #2E8B57;}
+
+        .avatar-container { position: absolute; bottom: 40px; right: 30px; z-index: 10; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        .avatar-wrapper { position: relative; display: flex; justify-content: center; align-items: center; width: 100px; height: 100px; filter: drop-shadow(2px 5px 5px rgba(0,0,0,0.4)); pointer-events: auto; cursor: pointer; }
+        .avatar-aura { position: absolute; bottom: 10px; width: 80px; height: 40px; border-radius: 50%; z-index: 1; filter: blur(8px); opacity: 0.8; }
+        .avatar-body { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; transform: translateY(10px); }
+        .avatar-head { font-size: 50px; z-index: 2; margin-bottom: -15px; }
+        .avatar-torso { font-size: 60px; z-index: 1; line-height: 1; }
+        .speech-bubble { background: white; border: 2px solid #2E8B57; border-radius: 15px; padding: 8px 12px; font-size: 13px; color: #333; max-width: 150px; margin-bottom: -20px; position: relative; opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: none; z-index: 11; text-align: center; }
+        .speech-bubble.show { opacity: 1; transform: translateY(0); }
+
+        /* Магазин и Задания */
+        .shop-categories { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .shop-cat-btn { padding: 6px 10px; border-radius: 8px; border: none; background: #eee; cursor: pointer; font-family: 'Comfortaa'; font-weight: bold; font-size: 12px; white-space: nowrap; }
+        .shop-cat-btn.active { background: #FF8C00; color: white; }
+        .shop-cat-btn.locked { background: #ccc; color: #888; cursor: not-allowed; }
+        
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+        .shop-item { background: #fff; border: 2px solid #ddd; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .shop-item:hover { border-color: #2E8B57; }
+        .shop-item .price { font-size: 13px; color: #FF8C00; font-weight: bold; }
+        .shop-item.bought { background: #e8f5e9; border-color: #a5d6a7; cursor: default; }
+
+        .task-card { background: #fff; padding: 15px; border-radius: 12px; border: 2px solid #a5d6a7; margin-bottom: 10px; }
+        .task-options button { text-align: left; padding: 10px; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9; cursor: pointer; font-family: 'Comfortaa'; margin-top: 5px; width: 100%;}
+        .task-options button.correct { background: #c8e6c9; border-color: #2E8B57; }
+        .task-options button.wrong { background: #ffcdd2; border-color: #d9534f; }
+
+        .mini-games-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mini-game-card { background: #fff; border: 2px solid #a5d6a7; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .mini-game-card:hover { border-color: #2E8B57; transform: translateY(-2px); }
+        .mini-game-card.disabled { opacity: 0.5; cursor: not-allowed; }
+        .mini-game-card h4 { color: #2E8B57; margin-bottom: 5px; }
+        .mini-game-card p { font-size: 12px; color: #666; }
+
+        /* Модалки */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 15px; text-align: center; width: 90%; max-width: 450px; position: relative; }
+        .close-btn { position: absolute; top: 10px; right: 10px; background: #d9534f; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; }
+        
+        /* Поиск */
+        .search-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .search-cell { background: #98FB98; height: 70px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; border: 2px solid #2E8B57; }
+        .search-cell.found { background: #FFD700; }
+        .search-cell.gold { background: #FF8C00; animation: flash 0.5s 3; }
+        .search-cell.miss { background: #eee; }
+
+        /* Сортировка */
+        .sorting-area { display: flex; justify-content: center; gap: 20px; margin: 20px 0; }
+        .bin { width: 80px; height: 100px; border: 3px dashed #888; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .bin:hover { background: #f0f0f0; }
+        .bin.blue { border-color: #2196F3; color: #2196F3; }
+        .bin.green { border-color: #4CAF50; color: #4CAF50; }
+        .sort-item { font-size: 50px; margin: 10px 0; animation: popIn 0.3s; }
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
+        /* Полив */
+        .water-game-area { text-align: center; margin-top: 20px; }
+        .water-plant { font-size: 80px; margin: 20px 0; transition: 0.3s; }
+        .water-btn { padding: 15px 30px; font-size: 18px; border-radius: 50px; background: #2196F3; color: white; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.4); }
+
+        @media (max-width: 768px) {
+            .app { width: 100%; height: 100vh; border-radius: 0; padding: 5px; }
+            #mainGame { flex-direction: column; gap: 5px; }
+            .sidebar { width: 100%; flex-direction: row; overflow-x: auto; height: auto; padding-bottom: 5px; }
+            .sidebar .header { display: none; }
+            .tab-btn { width: auto; white-space: nowrap; padding: 8px 12px; font-size: 12px; }
+            .content-area { height: 100%; }
+            .forest-view { min-height: 300px; }
+            .mini-games-grid { grid-template-columns: 1fr; }
+        }
+        
+        @keyframes petWalk {
+            0% { transform: translateX(0) scaleX(1); }
+            48% { transform: translateX(30px) scaleX(1); }
+            50% { transform: translateX(30px) scaleX(-1); }
+            98% { transform: translateX(0) scaleX(-1); }
+            100% { transform: translateX(0) scaleX(1); }
+        }
+    </style>
+    <meta name="description" content="Лесная история — игра о природе, где каждый день появляются новые знания, задания и деревья.">
+    <link rel="stylesheet" href="assets/forest.css?v=2">
+</head>
+<body>
+
+<div class="bg-decor bg-tree1">🌲</div>
+<div class="bg-decor bg-tree2">🌳</div>
+<div class="bg-decor bg-tree3">🌿</div>
+<div class="bg-decor bg-cloud">☁️</div>
+<div class="bg-decor bg-sun">☀️</div>
+
+<div class="app" id="app">
+    
+    <div id="loginScreen" class="login-screen">
+        <h2>🌳 Эко-Ферма</h2>
+        <p>Построй свой лес, заведи питомца и стань Эко-Героем!</p>
+        <input type="text" id="nameInput" placeholder="Введи имя">
+        <button onclick="startGame()">Начать игру</button>
+    </div>
+
+    <div id="mainGame">
+        
+        <div class="sidebar">
+            <div class="header">
+                🌳 <span id="displayName"></span>
+                <div class="currency">
+                    <span>♻️ <span id="paperCount">0</span></span>
+                    <span>💧 <span id="waterCount">0</span></span>
+                </div>
+            </div>
+            <button class="tab-btn active" onclick="switchTab('forest', this)">🏡 Лес</button>
+            <button class="tab-btn" onclick="switchTab('minigames', this)">🎮 Мини-игры</button>
+            <button class="tab-btn" id="tabTasksBtn" onclick="switchTab('tasks', this)">📋 Задания</button>
+            <button class="tab-btn" id="tabQuestsBtn" onclick="switchTab('quests', this)">📜 Квесты</button>
+            <button class="tab-btn" onclick="switchTab('shop', this)">🛒 Магазин</button>
+            <button class="tab-btn" onclick="switchTab('avatar', this)">👤 Аватар</button>
+            <button class="tab-btn" onclick="switchTab('stats', this)">📊 Статистика</button>
+        </div>
+
+        <div class="content-area">
+            
+            <div id="screen-forest" class="screen active">
+                <div class="info-panel" id="infoPanel">
+                    <span id="infoDate">Загрузка...</span>
+                    <span id="infoWeather">Погода: ...</span>
+                </div>
+
+                <div class="forest-view weather-sunny" id="forestView">
+                    <div class="avatar-container">
+                        <div class="speech-bubble" id="speechBubble">Привет!</div>
+                        <div class="avatar-wrapper" id="avatarDisplay" onclick="talk('Давай посадим дерево!')">
+                            <div class="avatar-aura" id="avatarAura"></div>
+                            <div class="avatar-body">
+                                <div class="avatar-head" id="avatarHead">🧑</div>
+                                <div class="avatar-torso" id="avatarTorso">👕</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                    <button class="action-btn" onclick="plantTree()" style="flex:1;">Сдать макулатуру (10 ед. = 1 дерево)</button>
+                    <button class="action-btn warning" onclick="claimDaily()" style="flex:1;" id="btnDaily">🎁 Награда</button>
+                </div>
+            </div>
+
+            <div id="screen-minigames" class="screen">
+                <h3 style="color: #2E8B57; text-align:center;">Мини-игры (3 попытки в день)</h3>
+                <div class="mini-games-grid">
+                    <div class="mini-game-card" id="mg1" onclick="startMiniGame(1)">
+                        <div style="font-size:40px;">🔍</div>
+                        <h4>Поиск макулатуры</h4>
+                        <p>Найди пакет среди кустов (шанс найти золотой!).</p>
+                    </div>
+                    <div class="mini-game-card" id="mg2" onclick="startMiniGame(2)">
+                        <div style="font-size:40px;">♻️</div>
+                        <h4>Сортировка</h4>
+                        <p>Распредели мусор по бакам. Награда: +5 ед.</p>
+                    </div>
+                    <div class="mini-game-card" id="mg3" onclick="startMiniGame(3)">
+                        <div style="font-size:40px;">💧</div>
+                        <h4>Полив ростка</h4>
+                        <p>Успей полить растение. Награда: +2 ед. и +10 капель.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-tasks" class="screen">
+                <h3 style="color: #2E8B57; text-align:center;">Ежедневные задания</h3>
+                <div id="tasksContainer"></div>
+            </div>
+
+            <div id="screen-quests" class="screen">
+                <h3 style="color: #2E8B57; text-align:center;">Сюжетные квесты</h3>
+                <div id="questsContainer"></div>
+            </div>
+
+            <div id="screen-shop" class="screen">
+                <h3 style="color: #2E8B57; text-align:center;">Магазин</h3>
+                <div class="shop-categories" id="shopCats"></div>
+                <div class="shop-grid" id="shopContainer"></div>
+            </div>
+
+            <div id="screen-avatar" class="screen">
+                <h3 style="color: #2E8B57; text-align:center;">Твой Герой</h3>
+                <div style="display:flex; justify-content:center; margin: 15px 0;">
+                    <div class="avatar-wrapper" style="transform: scale(1.2);">
+                        <div class="avatar-aura" id="previewAura"></div>
+                        <div class="avatar-body">
+                            <div class="avatar-head" id="previewHead">🧑</div>
+                            <div class="avatar-torso" id="previewTorso">👕</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>Персонаж:</span>
+                        <div><button onclick="changeAvatar('head', -1)">◀</button> <span id="charLabel">Взрослый</span> <button onclick="changeAvatar('head', 1)">▶</button></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>Одежда:</span>
+                        <div><button onclick="changeAvatar('clothes', -1)">◀</button> <span id="clothesLabel">Футболка</span> <button onclick="changeAvatar('clothes', 1)">▶</button></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>Аура:</span>
+                        <div><button onclick="changeAvatar('color', -1)">◀</button> <span id="colorLabel">Зеленый</span> <button onclick="changeAvatar('color', 1)">▶</button></div>
+                    </div>
+                </div>
+                <button class="action-btn" style="margin-top:10px;" onclick="saveAvatar()">Сохранить</button>
+            </div>
+
+            <div id="screen-stats" class="screen">
+                <h3 style="color: #2E8B57; text-align:center;">Статистика</h3>
+                <div class="task-card" style="display:flex; flex-direction:column; gap:15px;">
+                    <div style="font-size:16px;">🌳 Посажено деревьев: <b id="statTrees">0</b></div>
+                    <div style="font-size:16px;">♻️ Собрано за всё время: <b id="statTotalPaper">0</b></div>
+                    <div style="font-size:16px;">🐶 Питомец: <b id="statPet">Нет</b></div>
+                    <div style="font-size:16px;">🔥 Дней подряд: <b id="statStreak">0</b></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКИ -->
+<div class="modal" id="searchModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeModal('searchModal')">✖</button>
+        <h3>Поиск макулатуры</h3>
+        <div id="attemptsDisplay" style="font-weight:bold; color:#d9534f; margin:10px 0;">Попытки: 3</div>
+        <div class="search-map" id="searchMap"></div>
+    </div>
+</div>
+
+<div class="modal" id="sortingModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeModal('sortingModal')">✖</button>
+        <h3>Сортировка мусора</h3>
+        <p style="font-size:13px;">Куда выбросить этот предмет?</p>
+        <div class="sort-item" id="sortItem">🍌</div>
+        <div class="sorting-area">
+            <div class="bin blue" onclick="checkSort('blue')">Синий<br>(Бумага/Пластик)</div>
+            <div class="bin green" onclick="checkSort('green')">Зеленый<br>(Органика)</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="waterModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeModal('waterModal')">✖</button>
+        <h3>Полив ростка</h3>
+        <p style="font-size:13px;">Нажми на кнопку, чтобы набрать 100% воды!</p>
+        <div class="water-game-area">
+            <div class="water-plant" id="waterPlant">🌱</div>
+            <div style="font-size: 20px; font-weight: bold; color: #2196F3; margin-bottom: 15px;" id="waterPercent">0%</div>
+            <button class="water-btn" id="waterBtn" onclick="waterClick()">Полить! 💧</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="petLeaveModal">
+    <div class="modal-content" style="border: 4px solid #d9534f;">
+        <h3 style="color:#d9534f;">😭 Питомец ушел...</h3>
+        <p style="margin: 15px 0; font-weight: bold;">Увы... но ты не был готов к такой ответственности. В следующий раз отнесись серьезнее.</p>
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Ты очень расстроен. Квесты и задания недоступны 1 день.</p>
+        <button class="action-btn" onclick="closeModal('petLeaveModal')">Я понял...</button>
+    </div>
+</div>
+
+<script>
+    // === БАЗОВЫЕ ПЕРЕМЕННЫЕ ===
+    let playerName = "";
+    let paper = 0; // Кошелек (тратится)
+    let totalPaper = 0; // Всего собрано (для квестов)
+    let water = 0;
+    let trees = []; 
+    let landscape = []; 
+    let decor = []; 
+    let ownedClothes = [0];
+    
+    let avatar = { head: 0, clothes: 0, color: 0 };
+    
+    let dailyTasks = [], lastTaskDate = "";
+    let searchCount = 0;
+    let dailyBonusDate = "", dailyStreak = 0;
+    let questStates = { q1: 0, q2: 0, q3: 0, q4: 0 }; 
+    let currentShopCat = 'nature';
+
+    let pet = { id: null, name: "", emoji: "", lastFed: 0, x: 50, y: 10 };
+    let petUnlocked = false;
+    let sadUntilDate = ""; 
+
+    // Переменные для мини-игр
+    let sortCorrectItem = '';
+    let waterProgress = 0;
+    let waterTimer = null;
+
+    // === СПИСКИ ===
+    const headsList = ["🧑", "👧", "👦", "👩"];
+    const headLabels = ["Взрослый", "Девочка", "Мальчик", "Женщина"];
+    const colorsList = ["#4CAF50", "#2196F3", "#F44336", "#FFC107", "#9C27B0"];
+    const colorsLabels = ["Зеленый", "Синий", "Красный", "Желтый", "Фиолетовый"];
+
+    const allClothes = [
+        { emoji: '👕', name: 'Футболка', price: 0 }, 
+        { emoji: '🧥', name: 'Худи', price: 50 },
+        { emoji: '👗', name: 'Платье', price: 50 }, 
+        { emoji: '🦺', name: 'Эко-жилет', price: 100 },
+        { emoji: '👘', name: 'Кимоно', price: 150 }, 
+        { emoji: '🥼', name: 'Халат', price: 200 },
+        { emoji: '🦸‍♂️', name: 'Супергерой', price: 300 }, 
+        { emoji: '🧙‍♂️', name: 'Мантия мага', price: 350 },
+        { emoji: '👑', name: 'Корона', price: 500 },
+        { emoji: '🎩', name: 'Цилиндр', price: 250 }
+    ];
+
+    const shopData = {
+        nature: [
+            { id: 'flower', emoji: '🌸', name: 'Цветок', price: 20, type: 'decor' },
+            { id: 'mushroom', emoji: '🍄', name: 'Гриб', price: 15, type: 'decor' },
+            { id: 'tree_birch', emoji: '🌳', name: 'Береза', price: 50, type: 'decor' },
+            { id: 'cactus', emoji: '🌵', name: 'Кактус', price: 30, type: 'decor' }
+        ],
+        inhabitants: [
+            { id: 'bird', emoji: '🐦', name: 'Птица', price: 40, type: 'inhabitant' },
+            { id: 'butterfly', emoji: '🦋', name: 'Бабочка', price: 25, type: 'inhabitant' },
+            { id: 'squirrel', emoji: '🐿️', name: 'Белка', price: 45, type: 'inhabitant' },
+            { id: 'rabbit', emoji: '🐇', name: 'Кролик', price: 70, type: 'inhabitant' }
+        ],
+        landscape: [
+            { id: 'river', emoji: '🌊', name: 'Река', price: 300, type: 'landscape' },
+            { id: 'rainbow', emoji: '🌈', name: 'Радуга', price: 200, type: 'landscape' },
+            { id: 'mountains', emoji: '⛰️', name: 'Горы', price: 250, type: 'landscape' }
+        ],
+        clothes: [],
+        pets: [
+            { id: 'dog', emoji: '🐶', name: 'Собака', price: 100, type: 'pet' },
+            { id: 'cat', emoji: '🐱', name: 'Кот', price: 100, type: 'pet' }
+        ],
+        food: [
+            { id: 'apple', emoji: '🍎', name: 'Яблоко', price: 10, type: 'food' },
+            { id: 'bone', emoji: '🦴', name: 'Косточка', price: 10, type: 'food' }
+        ]
+    };
+
+    allClothes.forEach((item, i) => {
+        if(i !== 0) shopData.clothes.push({ id: 'cloth_'+i, emoji: item.emoji, name: item.name, price: item.price, clothIndex: i, isClothes: true });
+    });
+
+    const allQuestions = [
+        { q: "Сколько будет 10% от 100?", opts: ["1", "10", "100", "0.1"], ans: 1 },
+        { q: "1% от 200 кг — это сколько?", opts: ["20 кг", "2 кг", "200 кг", "0.2 кг"], ans: 1 },
+        { q: "Собрали 50 кг из 100 кг. Это сколько %?", opts: ["5%", "25%", "50%", "100%"], ans: 2 },
+        { q: "Нашли 20% от 50 кг. Сколько кг?", opts: ["5 кг", "10 кг", "20 кг", "2 кг"], ans: 1 },
+        { q: "Цель — 100 кг. Сдали 150 кг. На сколько % перевыполнили?", opts: ["150%", "50%", "100%", "15%"], ans: 1 },
+        { q: "Эко-сумка 500 руб. Скидка 10%. Сколько сэкономили?", opts: ["5 руб", "10 руб", "50 руб", "100 руб"], ans: 2 },
+        { q: "Что делают из макулатуры?", opts: ["Стекло", "Бумагу", "Пластик", "Металл"], ans: 1 },
+        { q: "Сколько лет разлагается пластиковая бутылка?", opts: ["10 лет", "50 лет", "450 лет", "1 год"], ans: 2 }
+    ];
+
+    // === СОХРАНЕНИЕ И ЗАГРУЗКА ===
+    function save() {
+        const data = { name: playerName, paper, totalPaper, water, trees, landscape, decor, ownedClothes, avatar, dailyBonusDate, dailyStreak, lastTaskDate, tasks: dailyTasks, searchCount, pet, petUnlocked, questStates, sadUntilDate };
+        localStorage.setItem('ecoFarm_v18', JSON.stringify(data));
+    }
+
+    window.onload = function() {
+        const saved = localStorage.getItem('ecoFarm_v18');
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data.name) {
+                playerName = data.name; 
+                paper = data.paper; 
+                totalPaper = data.totalPaper || data.paper; // Защита для старых сохранений
+                water = data.water;
+                trees = data.trees || []; landscape = data.landscape || []; decor = data.decor || []; ownedClothes = data.ownedClothes || [0];
+                avatar = data.avatar || { head: 0, clothes: 0, color: 0 };
+                dailyBonusDate = data.dailyBonusDate || ""; dailyStreak = data.dailyStreak || 0;
+                lastTaskDate = data.lastTaskDate || ""; dailyTasks = data.tasks || [];
+                searchCount = data.searchCount || 0; pet = data.pet || { id: null, name: "", emoji: "", lastFed: 0, x: 50, y: 10 };
+                petUnlocked = data.petUnlocked || false; questStates = data.questStates || { q1: 0, q2: 0, q3: 0, q4: 0 };
+                sadUntilDate = data.sadUntilDate || "";
+                
+                document.getElementById('loginScreen').style.display = "none";
+                document.getElementById('mainGame').style.display = "flex";
+                initGame();
+            }
+        }
+    };
+
+    function startGame() {
+        const name = document.getElementById('nameInput').value.trim();
+        if (!name) return alert("Введи имя!");
+        playerName = name;
+        water = 100;
+        document.getElementById('loginScreen').style.display = "none";
+        document.getElementById('mainGame').style.display = "flex";
+        initGame();
+    }
+
+    function initGame() {
+        checkDailyReset();
+        checkSadness();
+        updateUI();
+        renderForest();
+        renderTasks();
+        renderQuests();
+        renderShop();
+        updateAvatarLabels();
+        updateDailyBtn();
+        updateInfoPanel();
+        updateStats();
+        checkPetStatus();
+    }
+
+    function switchTab(tab, btn) {
+        if ((tab === 'quests' || tab === 'tasks') && checkSadness()) { return; }
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('screen-' + tab).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // Обновляем и кошелек, и статистику
+    function addPaper(amount) {
+        paper += amount;
+        totalPaper += amount;
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('displayName').innerText = playerName;
+        document.getElementById('paperCount').innerText = paper;
+        document.getElementById('waterCount').innerText = water;
+        document.getElementById('mg1').classList.toggle('disabled', searchCount >= 3);
+        document.getElementById('mg2').classList.toggle('disabled', searchCount >= 3);
+        document.getElementById('mg3').classList.toggle('disabled', searchCount >= 3);
+    }
+
+    function updateInfoPanel() {
+        const now = new Date();
+        const days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+        const months = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+        document.getElementById('infoDate').innerText = `📅 ${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+
+        const isWinter = now.getMonth() === 11 || now.getMonth() === 0 || now.getMonth() === 1;
+        document.getElementById('infoWeather').innerText = (now.getDate() % 3 === 0) ? (isWinter ? "❄️ Снежно" : "🌧️ Дождливо") : "☀️ Солнечно";
+    }
+
+    // === ЛЕС ===
+    function renderForest() {
+        const view = document.getElementById('forestView');
+        view.querySelectorAll('.plant, .pet, .decor-item, .inhabitant, .landscape-item, .weather-effect, .sun-game').forEach(e => e.remove());
+
+        const now = new Date();
+        const dateNum = now.getDate();
+        const isWinter = now.getMonth() === 11 || now.getMonth() === 0 || now.getMonth() === 1;
+        
+        if (dateNum % 3 === 0) {
+            if (isWinter) {
+                view.className = 'forest-view weather-snow';
+                for(let i=0; i<40; i++) createWeatherEffect(view, '❄️', 'snow');
+            } else {
+                view.className = 'forest-view weather-rain';
+                for(let i=0; i<50; i++) createWeatherEffect(view, '|', 'rain');
+            }
+        } else {
+            view.className = 'forest-view weather-sunny';
+            const sun = document.createElement('div');
+            sun.className = 'sun-game';
+            view.appendChild(sun);
+        }
+
+        landscape.forEach(itemId => {
+            if (itemId === 'river') {
+                const el = document.createElement('div'); el.className = 'landscape-item river'; view.appendChild(el);
+            } else if (itemId === 'mountains') {
+                const el = document.createElement('div'); el.className = 'landscape-item mountain-bg'; view.appendChild(el);
+            } else if (itemId === 'rainbow') {
+                const el = document.createElement('div');
+                el.style.position = 'absolute'; el.style.top = '10%'; el.style.left = '20%'; el.style.fontSize = '100px'; el.style.zIndex = '1';
+                el.innerText = '🌈'; view.appendChild(el);
+            }
+        });
+
+        trees.forEach((t, i) => {
+            const el = document.createElement('div');
+            el.className = 'plant swaying';
+            el.innerText = t.type || '🌲';
+            el.style.left = t.x + '%';
+            el.style.bottom = (10 + (t.y * 0.2)) + '%'; 
+            el.style.zIndex = 4 + i;
+            let baseSize = 60 + (i * 15); 
+            el.style.fontSize = Math.min(baseSize, 160) + 'px';
+            view.appendChild(el);
+        });
+
+        const inhabitants = decor.filter(d => Object.values(shopData).flat().find(x => x.id === d.id)?.type === 'inhabitant');
+        inhabitants.forEach((d) => {
+            const item = Object.values(shopData).flat().find(i => i.id === d.id);
+            if (item) {
+                const el = document.createElement('div'); el.className = 'inhabitant';
+                el.innerText = item.emoji; el.style.left = d.x + '%'; el.style.bottom = d.y + '%';
+                if (item.id === 'bird' || item.id === 'butterfly') el.style.animation = 'fly 2s infinite alternate';
+                else if (item.id === 'rabbit') el.style.animation = 'jump 1s infinite';
+                else el.style.animation = 'run 4s infinite alternate';
+                view.appendChild(el);
+            }
+        });
+
+        const decorItems = decor.filter(d => Object.values(shopData).flat().find(x => x.id === d.id)?.type === 'decor');
+        decorItems.forEach((d) => {
+            const item = Object.values(shopData).flat().find(i => i.id === d.id);
+            if (item) {
+                const el = document.createElement('div'); el.className = 'decor-item';
+                el.innerText = item.emoji; el.style.left = d.x + '%'; el.style.bottom = d.y + '%'; el.style.fontSize = '35px';
+                makeDraggable(el, d);
+                view.appendChild(el);
+            }
+        });
+
+        if (pet.id && pet.emoji) {
+            const petEl = document.createElement('div'); petEl.className = 'pet';
+            petEl.innerHTML = `<div class="pet-name">${pet.name}</div>${pet.emoji}`;
+            petEl.style.left = pet.x + '%'; petEl.style.bottom = pet.y + '%';
+            petEl.style.animation = 'petWalk 6s ease-in-out infinite alternate';
+            view.appendChild(petEl);
+        }
+
+        document.getElementById('avatarHead').innerText = headsList[avatar.head];
+        if(avatar.clothes === 8 || avatar.clothes === 9) document.getElementById('avatarTorso').innerText = '👕';
+        else document.getElementById('avatarTorso').innerText = allClothes[avatar.clothes].emoji;
+        document.getElementById('avatarAura').style.background = colorsList[avatar.color];
+        checkSadness(); 
+    }
+
+    function makeDraggable(el, dataObj) {
+        let isDragging = false, startX, startY, startLeft, startBottom;
+        const view = document.getElementById('forestView');
+
+        const dragStart = (e) => {
+            isDragging = true;
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            startX = clientX; startY = clientY;
+            const rect = el.getBoundingClientRect(); const viewRect = view.getBoundingClientRect();
+            startLeft = rect.left - viewRect.left; startBottom = viewRect.bottom - rect.bottom;
+            el.style.zIndex = 999;
+        };
+
+        const dragMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            let newLeft = startLeft + (clientX - startX); let newBottom = startBottom - (clientY - startY);
+            
+            if (newLeft < 0) newLeft = 0;
+            if (newLeft > view.offsetWidth - el.offsetWidth) newLeft = view.offsetWidth - el.offsetWidth;
+            if (newBottom < 0) newBottom = 0;
+            if (newBottom > view.offsetHeight - el.offsetHeight) newBottom = view.offsetHeight - el.offsetHeight;
+            
+            el.style.left = (newLeft / view.offsetWidth) * 100 + '%';
+            el.style.bottom = (newBottom / view.offsetHeight) * 100 + '%';
+        };
+
+        const dragEnd = () => {
+            if (!isDragging) return;
+            isDragging = false; el.style.zIndex = 6;
+            dataObj.x = parseFloat(el.style.left); dataObj.y = parseFloat(el.style.bottom);
+            save();
+        };
+
+        el.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', dragEnd);
+        el.addEventListener('touchstart', dragStart, {passive: false});
+        document.addEventListener('touchmove', dragMove, {passive: false});
+        document.addEventListener('touchend', dragEnd);
+    }
+
+    function createWeatherEffect(view, char, type) {
+        const el = document.createElement('div'); el.className = 'weather-effect ' + (type === 'rain' ? 'rain-drop' : 'snow-flake');
+        if (type === 'snow') el.innerText = char;
+        el.style.left = (Math.random() * 100) + '%'; el.style.top = (Math.random() * -50) + 'px';
+        el.style.animationDuration = (1 + Math.random() * 1.5) + 's'; el.style.animationDelay = '-' + (Math.random() * 2) + 's';
+        view.appendChild(el);
+    }
+
+    function plantTree() {
+        if (paper >= 10) {
+            paper -= 10; // Тратим только из кошелька
+            trees.push({ x: 5 + Math.random() * 75, y: 5 + Math.random() * 10, type: Math.random() > 0.5 ? '🌲' : '🌳' });
+            
+            if (trees.length >= 5 && !petUnlocked) {
+                petUnlocked = true;
+                alert("🎉 Поздравляю! Ты посадил 5 деревьев! В магазине открылись Питомцы и Корм.");
+            }
+
+            updateUI(); save(); renderForest(); renderQuests(); updateStats();
+            talk("Ура! Новое дерево! 🌲");
+        } else {
+            talk("Ой, не хватает макулатуры!");
+        }
+    }
+
+    // === МИНИ-ИГРЫ ===
+    function startMiniGame(id) {
+        if (searchCount >= 3) { alert("На сегодня все!"); return; }
+        if (id === 1) { document.getElementById('searchModal').style.display = 'flex'; generateSearchMap(); }
+        else if (id === 2) { document.getElementById('sortingModal').style.display = 'flex'; startSorting(); }
+        else if (id === 3) { document.getElementById('waterModal').style.display = 'flex'; startWaterGame(); }
+    }
+
+    function finishMiniGame(rewardPaper, rewardWater) {
+        searchCount++;
+        addPaper(rewardPaper); // Добавляет и в кошелек, и в общее
+        water += rewardWater;
+        save(); renderQuests(); updateStats(); updateUI();
+        closeModal('searchModal'); closeModal('sortingModal'); closeModal('waterModal');
+    }
+
+    function generateSearchMap() {
+        const map = document.getElementById('searchMap');
+        map.innerHTML = "";
+        let searchAttemptsLeft = 3;
+        document.getElementById('attemptsDisplay').innerText = "Попытки: " + searchAttemptsLeft;
+        const paperLocation = Math.floor(Math.random() * 9);
+        const goldLocation = Math.random() > 0.7 ? Math.floor(Math.random() * 9) : -1;
+
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement('div'); cell.className = 'search-cell'; cell.innerText = '🌳';
+            cell.onclick = () => {
+                if (cell.classList.contains('found') || cell.classList.contains('miss') || cell.classList.contains('gold')) return;
+                if (i === goldLocation) {
+                    cell.classList.add('gold'); cell.innerText = '💰';
+                    alert("🎉 ДЖЕКПОТ! Золотой пакет! +10 макулатуры.");
+                    finishMiniGame(10, 0);
+                } else if (i === paperLocation) {
+                    cell.classList.add('found'); cell.innerText = '📦';
+                    alert("Найдено! +3 макулатуры.");
+                    finishMiniGame(3, 0);
+                } else {
+                    cell.classList.add('miss'); cell.innerText = '🍂'; searchAttemptsLeft--;
+                    document.getElementById('attemptsDisplay').innerText = "Попытки: " + searchAttemptsLeft;
+                    if (searchAttemptsLeft <= 0) { alert("Не повезло!"); finishMiniGame(0, 0); }
+                }
+            };
+            map.appendChild(cell);
+        }
+    }
+
+    const sortItems = [ { emoji: '🍌', type: 'green' }, { emoji: '📰', type: 'blue' }, { emoji: '🍎', type: 'green' }, { emoji: '📦', type: 'blue' } ];
+
+    function startSorting() {
+        const item = sortItems[Math.floor(Math.random() * sortItems.length)];
+        document.getElementById('sortItem').innerText = item.emoji; sortCorrectItem = item.type;
+    }
+
+    function checkSort(binType) {
+        if (binType === sortCorrectItem) { alert("✅ Верно! +5 макулатуры."); finishMiniGame(5, 0); }
+        else { alert("❌ Ошибка!"); finishMiniGame(0, 0); }
+    }
+
+    function startWaterGame() {
+        waterProgress = 0; document.getElementById('waterPercent').innerText = "0%";
+        document.getElementById('waterPlant').innerText = "🌱"; document.getElementById('waterBtn').disabled = false;
+        if(waterTimer) clearInterval(waterTimer);
+        waterTimer = setInterval(() => { waterProgress -= 5; if (waterProgress < 0) waterProgress = 0; updateWaterUI(); }, 500);
+    }
+
+    function waterClick() {
+        waterProgress += 20;
+        if (waterProgress >= 100) {
+            waterProgress = 100; updateWaterUI(); clearInterval(waterTimer);
+            document.getElementById('waterBtn').disabled = true; document.getElementById('waterPlant').innerText = "🌳";
+            alert("🌳 Отлично! +2 макулатуры и +10 капель.");
+            finishMiniGame(2, 10);
+        } else { updateWaterUI(); }
+    }
+
+    function updateWaterUI() {
+        document.getElementById('waterPercent').innerText = Math.round(waterProgress) + "%";
+        if (waterProgress < 30) document.getElementById('waterPlant').innerText = "🌱";
+        else if (waterProgress < 70) document.getElementById('waterPlant').innerText = "🌿";
+        else document.getElementById('waterPlant').innerText = "🌳";
+    }
+
+    // === ОСТАЛЬНЫЕ ФУНКЦИИ ===
+    function checkSadness() {
+        if (!sadUntilDate) return false;
+        const today = new Date().toDateString();
+        if (sadUntilDate === today) {
+            document.getElementById('avatarHead').innerText = '😭';
+            document.getElementById('avatarHead').style.filter = 'grayscale(100%)';
+            document.getElementById('tabTasksBtn').classList.add('disabled');
+            document.getElementById('tabQuestsBtn').classList.add('disabled');
+            return true; 
+        } else {
+            sadUntilDate = ""; save();
+            document.getElementById('avatarHead').style.filter = 'none';
+            document.getElementById('tabTasksBtn').classList.remove('disabled');
+            document.getElementById('tabQuestsBtn').classList.remove('disabled');
+            return false;
+        }
+    }
+
+    function feedPet(foodId) { if (pet.id) { pet.lastFed = Date.now(); save(); alert(`Ты покормил ${pet.name}!`); } }
+
+    function checkPetStatus() {
+        if (!pet.id) return;
+        if (Date.now() - pet.lastFed > 2 * 24 * 60 * 60 * 1000) {
+            document.getElementById('petLeaveModal').style.display = 'flex';
+            pet = { id: null, name: "", emoji: "", lastFed: 0, x: 50, y: 10 };
+            sadUntilDate = new Date().toDateString(); save(); renderForest(); initGame(); 
+        }
+    }
+
+    function updateDailyBtn() {
+        const today = new Date().toDateString();
+        const btn = document.getElementById('btnDaily');
+        if (dailyBonusDate === today) { btn.disabled = true; btn.innerText = "Награда получена"; } 
+        else { btn.disabled = false; btn.innerText = "🎁 Забрать награду"; }
+    }
+
+    function claimDaily() {
+        const today = new Date().toDateString();
+        if (dailyBonusDate === today) return;
+        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        if (dailyBonusDate === yesterday.toDateString()) dailyStreak++; else dailyStreak = 1;
+        dailyBonusDate = today;
+        addPaper(dailyStreak * 5); water += (20 + dailyStreak * 5);
+        alert(`Награда (День ${dailyStreak})!`);
+        save(); updateDailyBtn(); updateStats();
+    }
+
+    function checkDailyReset() {
+        const today = new Date().toDateString();
+        if (lastTaskDate !== today) {
+            dailyTasks = [];
+            const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+            for (let i = 0; i < 3; i++) dailyTasks.push({ ...shuffled[i], answered: false, chosen: -1 });
+            lastTaskDate = today; searchCount = 0; save();
+        }
+    }
+
+    function renderTasks() {
+        const container = document.getElementById('tasksContainer');
+        container.innerHTML = "";
+        dailyTasks.forEach((task, index) => {
+            const card = document.createElement('div'); card.className = 'task-card';
+            let html = `<h4>Задание ${index + 1}</h4><p style="font-size:13px;">${task.q}</p><div class="task-options">`;
+            task.opts.forEach((opt, optIndex) => {
+                let btnClass = ""; let isDisabled = task.answered ? "disabled" : "";
+                if (task.answered) {
+                    if (optIndex === task.ans) btnClass = "correct";
+                    if (optIndex === task.chosen && task.chosen !== task.ans) btnClass = "wrong";
+                }
+                html += `<button class="${btnClass}" onclick="answerTask(${index}, ${optIndex})" ${isDisabled}>${opt}</button>`;
+            });
+            html += `</div>`;
+            if (task.answered) {
+                if (task.chosen === task.ans) html += `<p style="color: #2E8B57; font-size: 13px; font-weight: bold;">✅ Верно! +5 макулатуры.</p>`;
+                else html += `<p style="color: #d9534f; font-size: 13px; font-weight: bold;">❌ Неверно.</p>`;
+            }
+            card.innerHTML = html; container.appendChild(card);
+        });
+    }
+
+    function answerTask(taskIndex, optIndex) {
+        const task = dailyTasks[taskIndex];
+        if (task.answered) return;
+        task.chosen = optIndex;
+        if (optIndex === task.ans) { addPaper(5); task.answered = true; talk("Молодец!"); } 
+        else { task.answered = true; talk("Ой... Неправильно."); }
+        save(); renderTasks(); updateStats();
+    }
+
+    // === КВЕСТЫ (ИСПОЛЬЗУЮТ TOTALPAPER) ===
+    const allQuests = [
+        { id: 'q1', title: 'Первый шаг', desc: 'Собери 20 макулатуры.', targetPaper: 20, targetTrees: 0, targetDecor: 0, rewardPaper: 20, rewardWater: 50 },
+        { id: 'q2', title: 'Юный лесоруб', desc: 'Собери 50 макулатуры и посади 3 дерева.', targetPaper: 50, targetTrees: 3, targetDecor: 0, rewardPaper: 50, rewardWater: 100 },
+        { id: 'q3', title: 'Декоратор', desc: 'Купи 1 любой предмет декора.', targetPaper: 0, targetTrees: 0, targetDecor: 1, rewardPaper: 30, rewardWater: 80 },
+        { id: 'q4', title: 'Эко-Герой', desc: 'Собери 150 макулатуры, посади 6 деревьев, купи 2 декора.', targetPaper: 150, targetTrees: 6, targetDecor: 2, rewardPaper: 100, rewardWater: 200 }
+    ];
+
+    function renderQuests() {
+        const container = document.getElementById('questsContainer');
+        container.innerHTML = "";
+        allQuests.forEach((quest, index) => {
+            const state = questStates[quest.id] || 0;
+            const card = document.createElement('div'); card.className = 'task-card'; card.style.borderColor = "#FFD700";
+            
+            let isCompleted = false;
+            if (state === 1) {
+                // Проверяем именно totalPaper, а не текущий кошелек
+                if (totalPaper >= quest.targetPaper && trees.length >= quest.targetTrees && decor.length >= quest.targetDecor) isCompleted = true;
+            }
+            
+            let btnText = ""; let btnDisabled = false;
+            if (state === 0) btnText = "Начать квест";
+            else if (state === 1) {
+                if (isCompleted) btnText = "Забрать награду!";
+                else { btnText = "Выполняется..."; btnDisabled = true; }
+            } else if (state === 2) { btnText = "Квест выполнен ✅"; btnDisabled = true; }
+
+            let html = `<h4>${quest.title}</h4><p style="font-size:13px; margin-bottom:5px;">${quest.desc}</p>`;
+            if (state === 1 && !isCompleted) {
+                html += `<div style="font-size: 12px; color: #2E8B57; font-weight: bold;">`;
+                if(quest.targetPaper > 0) html += `Собрано всего: ${Math.min(totalPaper, quest.targetPaper)}/${quest.targetPaper} `;
+                if(quest.targetTrees > 0) html += `| Деревья: ${Math.min(trees.length, quest.targetTrees)}/${quest.targetTrees} `;
+                if(quest.targetDecor > 0) html += `| Декор: ${Math.min(decor.length, quest.targetDecor)}/${quest.targetDecor}`;
+                html += `</div>`;
+            }
+            html += `<div style="font-size: 12px; color: #d9534f; font-weight: bold; margin-top:5px;">Награда: ♻️ ${quest.rewardPaper} | 💧 ${quest.rewardWater}</div>`;
+            html += `<button class="action-btn" style="margin-top:10px; width:100%; padding: 8px;" onclick="handleQuest('${quest.id}')" ${btnDisabled ? 'disabled' : ''}>${btnText}</button>`;
+            card.innerHTML = html; container.appendChild(card);
+        });
+    }
+
+    function handleQuest(questId) {
+        if (checkSadness()) { alert("Вы расстроены."); return; }
+        const quest = allQuests.find(q => q.id === questId);
+        let state = questStates[questId] || 0;
+        if (state === 0) { questStates[questId] = 1; talk("Квест начат!"); } 
+        else if (state === 1) {
+            if (totalPaper >= quest.targetPaper && trees.length >= quest.targetTrees && decor.length >= quest.targetDecor) {
+                questStates[questId] = 2; 
+                addPaper(quest.rewardPaper); water += quest.rewardWater;
+                talk(`Квест выполнен! 🎉`);
+            } else { talk("Условия не выполнены."); }
+        }
+        save(); renderQuests(); updateStats();
+    }
+
+    // === МАГАЗИН ===
+    function renderShop() {
+        const catContainer = document.getElementById('shopCats');
+        catContainer.innerHTML = "";
+        const cats = [
+            { id: 'nature', name: '🌿 Природа' }, { id: 'inhabitants', name: '🦊 Обитатели' }, 
+            { id: 'landscape', name: '⛰️ Пейзаж' }, { id: 'clothes', name: '👕 Одежда' },
+            { id: 'pets', name: '🐶 Питомцы', locked: !petUnlocked }, { id: 'food', name: '🍎 Корм', locked: !petUnlocked }
+        ];
+        cats.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'shop-cat-btn ' + (currentShopCat === c.id ? 'active' : '') + (c.locked ? ' locked' : '');
+            btn.innerText = c.name + (c.locked ? ' 🔒' : '');
+            btn.onclick = () => { if (c.locked) return; currentShopCat = c.id; renderShop(); };
+            catContainer.appendChild(btn);
+        });
+
+        const container = document.getElementById('shopContainer');
+        container.innerHTML = "";
+        const items = shopData[currentShopCat] || [];
+        items.forEach(item => {
+            const div = document.createElement('div'); div.className = 'shop-item';
+            let isBought = (item.isClothes) ? ownedClothes.includes(item.clothIndex) : 
+                           (currentShopCat === 'pets') ? (pet.id === item.id) : 
+                           (currentShopCat === 'food') ? false : 
+                           (item.type === 'landscape') ? landscape.includes(item.id) :
+                           decor.some(d => d.id === item.id);
+
+            if (isBought && currentShopCat !== 'food') {
+                div.classList.add('bought');
+                div.innerHTML = `<div style="font-size: 30px;">${item.emoji}</div><div style="font-size:12px;">${item.name}</div><div class="price">Куплено ✅</div>`;
+            } else {
+                div.innerHTML = `<div style="font-size: 30px;">${item.emoji}</div><div style="font-size:12px;">${item.name}</div><div class="price">💧 ${item.price}</div>`;
+                div.onclick = () => buyItem(item);
+            }
+            container.appendChild(div);
+        });
+    }
+
+    function buyItem(item) {
+        if (water < item.price) { talk("Не хватает капель!"); return; }
+        water -= item.price;
+        
+        if (currentShopCat === 'clothes') {
+            ownedClothes.push(item.clothIndex); avatar.clothes = item.clothIndex; updateAvatarLabels();
+        } else if (currentShopCat === 'pets') {
+            let pName = prompt("Как назовешь питомца?", "Бобик") || "Друг";
+            pet = { id: item.id, name: pName, emoji: item.emoji, lastFed: Date.now(), x: 30, y: 10 };
+            updateStats();
+        } else if (currentShopCat === 'food') {
+            feedPet(item.id);
+        } else if (item.type === 'landscape') {
+            landscape.push(item.id);
+        } else {
+            decor.push({ id: item.id, x: 20 + Math.random() * 60, y: 10 + Math.random() * 20 });
+        }
+        updateUI(); save(); renderForest(); renderShop(); renderQuests(); updateStats();
+    }
+
+    function updateAvatarLabels() {
+        document.getElementById('charLabel').innerText = headLabels[avatar.head];
+        document.getElementById('clothesLabel').innerText = allClothes[avatar.clothes].name;
+        document.getElementById('colorLabel').innerText = colorsLabels[avatar.color];
+        document.getElementById('previewHead').innerText = headsList[avatar.head];
+        document.getElementById('previewTorso').innerText = (avatar.clothes === 8 || avatar.clothes === 9) ? '👕' : allClothes[avatar.clothes].emoji;
+        document.getElementById('previewAura').style.background = colorsList[avatar.color];
+    }
+
+    function changeAvatar(part, dir) {
+        if (part === 'head') avatar.head = (avatar.head + dir + headsList.length) % headsList.length;
+        if (part === 'clothes') {
+            let idx = ownedClothes.indexOf(avatar.clothes);
+            avatar.clothes = ownedClothes[(idx + dir + ownedClothes.length) % ownedClothes.length];
+        }
+        if (part === 'color') avatar.color = (avatar.color + dir + colorsList.length) % colorsList.length;
+        updateAvatarLabels(); talk("Как тебе?");
+    }
+
+    function saveAvatar() { save(); talk("Сохранено!"); }
+
+    function updateStats() {
+        document.getElementById('statTrees').innerText = trees.length;
+        document.getElementById('statTotalPaper').innerText = totalPaper; // Показываем общий собранный
+        document.getElementById('statPet').innerText = pet.id ? pet.name : "Нет";
+        document.getElementById('statStreak').innerText = dailyStreak;
+    }
+
+    function talk(text) {
+        const bubble = document.getElementById('speechBubble');
+        if(!bubble) return;
+        bubble.innerText = text; bubble.classList.add('show');
+        setTimeout(() => bubble.classList.remove('show'), 3000);
+    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+</script>
+    <script src="assets/forest.js?v=2"></script>
+</body>
+</html>
