@@ -86,7 +86,7 @@ await test('Первый день не перекрыт длинным опис�
 await test('Выбор и сортировка на стеклянной панели',async()=>{
   selectName('Старая газета');bin('paper');
   await wait(()=>doc().getElementById('missionCount').textContent.trim()==='1 / 6',9000);
-  assert(doc().getElementById('selectedHint').textContent.includes('Выбери'),'после сортировки не сброшен выбор');
+  assert(doc().querySelectorAll('.object-item[aria-pressed="true"]').length===0,'после сортировки осталась выбранная карточка');
 });
 await test('Ошибка не меняет прогресс',()=>{
   selectName('Картонная коробка');bin('glass');
