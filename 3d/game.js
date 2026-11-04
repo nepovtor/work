@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createStory } from './story.js';
 
 /**
  * Эко-Ферма 3D — первый игровой фрагмент.
@@ -51,6 +52,7 @@ const state = {
   sorting: false,
   hasCompleted: !!persisted.hasCompleted
 };
+let story = null;
 function localDate(date=new Date()){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
 function dayNumber(){
   const a=new Date(state.startedAt+'T12:00:00');
@@ -304,6 +306,7 @@ function bench(x,z,rot=0){
     box(b,.11,.72,.11,mat.charcoal,a,.32,-.24);
     box(b,.11,.72,.11,mat.charcoal,a,.32,.26);
   }
+  return b;
 }
 bench(-1.05,-5.8,.18);
 bench(-1.1,7.3,-.13);
@@ -423,7 +426,7 @@ selectionRing.rotation.x=-Math.PI/2;selectionRing.position.y=.83;selectionRing.v
 
 // Interaction works with both scene picking and the HTML object/bin buttons.
 function selectItem(id) {
-  if(state.sorting||state.sorted.has(id))return;
+  if((story && story.load().day!==1)||state.sorting||state.sorted.has(id))return;
   state.selected=id;hideNote();
   const g=itemGroups.get(id);
   if(g){selectionRing.position.x=g.position.x;selectionRing.position.z=g.position.z;selectionRing.visible=true}
@@ -432,6 +435,7 @@ function selectItem(id) {
 }
 let sortTween=null;
 function attemptSort(binId) {
+  if(story && story.load().day!==1)return;
   if(!state.selected){announce('Сначала выбери вещь во дворе или в списке.');return}
   if(state.sorting)return;
   const item=items.find(x=>x.id===state.selected);
@@ -467,7 +471,10 @@ function sortFinished(id,lesson){
   announce('Хорошо! '+items.find(x=>x.id===id).name+' отправлена в подходящий сбор.');
   if(state.sorted.size===items.length&&!state.hasCompleted){
     state.hasCompleted=true;save();
-    setTimeout(()=>{hideNote();els.complete.hidden=false},1350);
+    if(story)story.onFirstDayComplete();
+    else setTimeout(()=>{hideNote();els.complete.hidden=false},1350);
+  }else if(story){
+    story.render();
   }
 }
 els.binList.querySelectorAll('[data-bin]').forEach(b=>b.addEventListener('click',()=>attemptSort(b.dataset.bin)));
@@ -479,7 +486,9 @@ function resetGame(){
   els.complete.hidden=true;hideNote();selectionRing.visible=false;
   items.forEach(i=>{const g=itemGroups.get(i.id);if(g){g.position.set(...[locations[i.id][0],.77,locations[i.id][1]]);g.scale.setScalar(1);g.visible=true;}});
   restoration.visible=false;garden.visible=false;
-  save();refreshHUD();announce('Двор готов к новой прогулке.');
+  save();refreshHUD();
+  if(story)story.reset();
+  announce('Двор готов к новой прогулке.');
 }
 els.cameraLeft.addEventListener('click',()=>{azimuth-=Math.PI/9;setCamera()});
 els.cameraRight.addEventListener('click',()=>{azimuth+=Math.PI/9;setCamera()});
@@ -493,6 +502,7 @@ function pickAt(clientX,clientY){
   const hits=raycaster.intersectObjects(allPickables,false);
   for (const hit of hits){
     const obj=hit.object;
+    if(obj.userData.storyAction && story){story.interact(obj.userData.storyAction);return}
     if(obj.userData.itemId && !state.sorted.has(obj.userData.itemId)){selectItem(obj.userData.itemId);return}
     if(obj.userData.binId){attemptSort(obj.userData.binId);return}
   }
@@ -564,7 +574,9 @@ function tick(){
   }
   renderer.render(scene,camera);
 }
+story = createStory({THREE,scene,mat,M,group,box,cylinder,sphere,bench,addMesh,state,itemGroups,allPickables,showNote,announce});
 refreshHUD();
+story.render();
 const hour=new Date().getHours();els.sunLabel.textContent=hour<6?'Ночь':hour<12?'Тихое утро':hour<18?'День во дворе':'Вечер во дворе';
 save();
 setCamera();
