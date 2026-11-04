@@ -7,8 +7,9 @@
 export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root,resize}) {
   const key=new URLSearchParams(location.search).has('qa') ? 'ecoFarm3D.settings.qa' : 'ecoFarm3D.settings.v1';
   const saved=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{return {}}})();
-  const lowByDefault=(navigator.hardwareConcurrency||6)<=4 || (navigator.deviceMemory||8)<=3 ||
-    matchMedia('(max-width: 600px)').matches;
+  // A narrow screen does not imply a weak GPU. Most modern iPhones can render
+  // the courtyard above 1x Retina; sustained low FPS may still enable eco mode.
+  const lowByDefault=(navigator.hardwareConcurrency||6)<=4 || (navigator.deviceMemory||8)<=3;
   let eco=typeof saved.eco==='boolean'?saved.eco:lowByDefault;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const actors=[],birds=[],leafActors=[],waterDrops=[];
@@ -27,10 +28,19 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
   function remember(){
     try {localStorage.setItem(key,JSON.stringify({eco}))}catch{}
   }
+  function updateResolution(){
+    if(!renderer)return;
+    const w=Math.max(1,root?.clientWidth||1),h=Math.max(1,root?.clientHeight||1);
+    const nativeRatio=Math.max(1,window.devicePixelRatio||1);
+    // Consistent on-screen sharpness without unbounded GPU fill cost.
+    const pixelBudget=eco?1400000:2800000;
+    const pixelRatio=Math.max(1,Math.min(nativeRatio,eco?1.5:2.0,Math.sqrt(pixelBudget/(w*h))));
+    if(Math.abs(renderer.getPixelRatio()-pixelRatio)>.025)renderer.setPixelRatio(pixelRatio);
+  }
   function quality(flag){
     eco=!!flag;
     if(renderer){
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,eco?1:1.6));
+      updateResolution();
       renderer.shadowMap.enabled=!eco;
       renderer.shadowMap.autoUpdate=!eco;
       if(sun){
@@ -329,9 +339,10 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
     return {stage:3,eco,quality:eco?'economy':'full',soundEnabled:audioOn,
       actors:actors.length,activeActors:actors.filter(x=>x.visible).length,invitedActors:actors.filter(x=>x.userData.isInvited).length,
       birds:birds.length,leaves:leafActors.length,
-      chapter:selectedSky,rendered:!!renderer};
+      chapter:selectedSky,rendered:!!renderer,
+      dpr:renderer?renderer.getPixelRatio():0,nativeDpr:window.devicePixelRatio||1};
   };
   // Read-only, predictable telemetry for the shipped QA page.
   Object.defineProperty(window,'__eco3dDiagnostics',{configurable:true,value:diagnostics});
-  return {createCharacter:makeCharacter,tick,setChapter,sound,quality,toggleSound,diagnostics};
+  return {createCharacter:makeCharacter,tick,setChapter,sound,quality,toggleSound,updateResolution,diagnostics};
 }
