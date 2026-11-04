@@ -28,7 +28,6 @@ export function createArtWorld({THREE,scene,renderer,sun,hemisphere,mat,M,group,
   mat.window.metalness=.05;mat.window.opacity=.88;
   mat.window.color.set('#91b1ad');
   const components={roofTiles:0,stonePieces:0,grassPatches:0,architecturalDetails:0,planters:0,flowerHeads:0,animated:0};
-  const animations=[];
   const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),pos=new THREE.Vector3(),sc=new THREE.Vector3(),rot=new THREE.Euler();
   function addInstances(geometry,material,entries,rotated=false){
     const inst=new THREE.InstancedMesh(geometry,material,entries.length);
@@ -41,11 +40,9 @@ export function createArtWorld({THREE,scene,renderer,sun,hemisphere,mat,M,group,
       pos.set(x,y,z);sc.set(sx,sy,sz);
       m4.compose(pos,q,sc);
       inst.setMatrixAt(i,m4);
-      if(i%4===0){
-        const c=new THREE.Color(material.color);
-        c.multiplyScalar(.92+(i%6)*.027);
-        inst.setColorAt(i,c);
-      }
+      const c=new THREE.Color(material.color);
+      c.multiplyScalar(.92+(i%6)*.027);
+      inst.setColorAt(i,c);
     });
     inst.instanceMatrix.needsUpdate=true;
     if(inst.instanceColor)inst.instanceColor.needsUpdate=true;
@@ -66,7 +63,7 @@ export function createArtWorld({THREE,scene,renderer,sun,hemisphere,mat,M,group,
     for(let col=0;col<26;col++){
       const x=-5.2+col*.55+(row%2?.23:0);
       const z=1.57+row*.4;
-      stones.push([x,.758,x===Infinity?0:z,.49,.018,.35,0,(random()-.5)*.04]);
+      stones.push([x,.758,z,.49,.018,.35,0,(random()-.5)*.04]);
     }
   }
   // Secondary path to the recycling station.
@@ -195,7 +192,6 @@ export function createArtWorld({THREE,scene,renderer,sun,hemisphere,mat,M,group,
     components.animated++;
   }
   const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-  let previousBucket=-1;
   function tick(time,dt,eco=false){
     if(reduced||eco)return;
     for(let i=0;i<mobiles.length;i++){
