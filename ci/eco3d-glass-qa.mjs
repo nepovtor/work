@@ -23,6 +23,7 @@ async function waitForServer() {
 }
 
 const names = [
+  ['art', 'qa-art.html', 11],
   ['glass', 'qa-glass.html', 15],
   ['clarity', 'qa-clarity.html', 8],
   ['mobile', 'qa-mobile.html', 16],
@@ -79,6 +80,21 @@ try {
     } finally {
       await context.close();
     }
+  }
+  // Visual evidence: full mobile viewport and landscape desktop, not only QA harness.
+  for (const [name, width, height, scale] of [['iphone', 390, 844, 2],['desktop', 1440, 900, 1]]) {
+    const ctx = await browser.newContext({ viewport:{width,height},deviceScaleFactor:scale,isMobile:name==='iphone',hasTouch:name==='iphone' });
+    const page = await ctx.newPage();
+    try {
+      await page.goto(base + 'index.html?qa=1', {waitUntil:'domcontentloaded',timeout:30000});
+      await page.waitForFunction(() => window.__eco3dArtAudit?.() && window.__eco3dDiagnostics?.().rendered, null, {timeout:28000});
+      await page.waitForTimeout(1500);
+      await page.screenshot({path: dir + '/' + name + '-game.png'});
+      console.log('[SCREENSHOT] ' + name + ': '+width+'x'+height+' DPR='+scale);
+    } catch(err) {
+      failed=true;
+      console.error('[FAIL] screenshot '+name+': '+err.message);
+    } finally { await ctx.close(); }
   }
 } finally {
   if (browser) await browser.close();
