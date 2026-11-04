@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f6ed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="Эко-Ферма 3D: уютный двор и небольшие действия, которые меняют мир. Семь игровых глав о полезных привычках, макулатуре и преображении двора.">
+  <title>Эко-Ферма 3D — Семь историй одного двора</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css?v=2">
+  <link rel="stylesheet" href="./story.css?v=1">
+  <link rel="stylesheet" href="./polish.css?v=2">
+  <link rel="stylesheet" href="./mobile.css?v=2">
+  <link rel="stylesheet" href="./glass.css?v=3">
+  <script>
+    window.__ecoErrors = [];
+    window.addEventListener('error', function(event) {
+      var message = event.message || (event.target && event.target.src ? 'Не загружен ресурс: '+event.target.src : 'Неизвестная ошибка');
+      window.__ecoErrors.push(message);
+      var loading = document.getElementById('loading');
+      if(loading) loading.textContent = 'Не удалось запустить 3D-сцену. Попробуй перезагрузить страницу.';
+    }, true);
+    window.addEventListener('unhandledrejection', function(event) {
+      var reason = event.reason;
+      window.__ecoErrors.push(String(reason && reason.stack || reason || 'Ошибка модуля'));
+    });
+  </script>
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}
+  </script>
+  <script type="module" src="./game.js?v=10"></script>
+</head>
+<body>
+  <div class="shell" id="app">
+    <header class="masthead">
+      <a class="wordmark" href="../../classic/" aria-label="Открыть основную версию Эко-Фермы">
+        <svg class="mark" viewBox="0 0 44 44" fill="none" aria-hidden="true">
+          <rect width="44" height="44" rx="13" fill="#234838"/>
+          <path d="M22 35V15M22 26C12 25 10 18 11 12c8 1 12 6 11 14ZM22 22c1-10 7-13 13-12-1 8-5 13-13 14" stroke="#EAEEC6" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="33" cy="32" r="2" fill="#E9AD7A"/>
+        </svg>
+        <span class="brand-text"><strong>эко<span class="brand-light">ферма</span></strong></span>
+      </a>
+      <span class="separator" aria-hidden="true"></span>
+      <span class="context-label">Двор № 1 <span class="context-dot">·</span> Семь историй</span>
+      <div class="header-right">
+        <span class="day-tag" id="dayTag" aria-label="Игровой день">ДЕНЬ 01 / 07</span>
+        <a class="back-link" href="../../classic/" aria-label="Открыть классическую версию игры">Классическая версия</a>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="panel">
+        <div class="panel-topline"><span class="eyebrow">ПРОГРЕСС</span></div>
+        <h1>Вещам есть<br>место<span class="period">.</span></h1>
+        <p class="lede">На дорожках остались газета, коробка, банки, бутылка и батарейка. Разберись с находками — и двор станет чище.</p>
+
+        <section class="story-shell" id="storyPanel" aria-labelledby="storyTitle" hidden>
+          <div class="story-track-line"><span class="eyebrow">ИСТОРИЯ ДВОРА</span><span class="story-budget" id="storyFunds">0 очков помощи</span></div>
+          <div class="story-track" id="chapterTrack" aria-label="Прогресс по семи игровым дням"></div>
+          <div class="story-topline"><span class="eyebrow" id="storyKicker">ПЕРВЫЙ ДЕНЬ</span><span class="mission-count" id="storyCounter">0 / 6</span></div>
+          <h2 id="storyTitle">Первые находки</h2>
+          <strong class="story-sub" id="storySub"></strong>
+          <p id="storyText"></p>
+          <div class="story-progress-track"><span id="storyProgress"></span></div>
+          <div class="story-actions" id="storyActions"></div>
+        </section>
+
+        <div id="stage1Wrap">
+        <section class="mission" aria-labelledby="missionTitle">
+          <div class="section-heading">
+            <span class="eyebrow">ПЕРВОЕ ДЕЛО</span>
+            <span class="mission-count" id="missionCount">0 / 6</span>
+          </div>
+          <h2 id="missionTitle">Разберёмся с находками</h2>
+          <p class="mission-explain">Нажми на предмет во дворе или выбери его в списке. Затем укажи подходящий контейнер.</p>
+          <div class="progress" role="progressbar" aria-label="Сортировка" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0" id="progress">
+            <span id="progressFill"></span>
+          </div>
+        </section>
+
+        <section class="inventory" aria-labelledby="inventoryTitle">
+          <div class="section-heading heading-items">
+            <span class="eyebrow" id="inventoryTitle">ВЫБЕРИ ПРЕДМЕТ</span>
+            <span class="hint-small" id="itemCountLabel" aria-live="off"></span>
+          </div>
+          <div class="object-list" id="objectList" role="group" aria-label="Предметы для сортировки"></div>
+        </section>
+
+        <section class="dropzone" aria-labelledby="dropzoneTitle">
+          <div class="section-heading heading-items">
+            <span class="eyebrow" id="dropzoneTitle">КУДА ОТНЕСЁМ?</span>
+            <span class="hint-small">5 категорий</span>
+          </div>
+          <div id="selectedHint" class="selected-hint" role="status" aria-live="polite">Выбери предмет</div>
+          <div class="bin-list" id="binList" role="group" aria-label="Контейнеры для отходов">
+            <button type="button" data-bin="paper" class="bin-button"><span class="bin-color paper"></span>Бумага</button>
+            <button type="button" data-bin="glass" class="bin-button"><span class="bin-color glass"></span>Стекло</button>
+            <button type="button" data-bin="plastic" class="bin-button"><span class="bin-color plastic"></span>Пластик</button>
+            <button type="button" data-bin="metal" class="bin-button"><span class="bin-color metal"></span>Металл</button>
+            <button type="button" data-bin="special" class="bin-button"><span class="bin-color special"></span>Особый сбор</button>
+          </div>
+        </section>
+
+        </div><!-- stage1Wrap -->
+        <div class="panel-bottom">
+          <button id="restart" type="button" class="restart">↺ <span>Начать сначала</span></button>
+          <span class="save-label">История сохраняется на этом устройстве</span>
+        </div>
+      </aside>
+
+      <main class="world" aria-label="Трёхмерный двор Эко-Фермы">
+        <div class="world-top">
+          <div class="world-title"><span class="world-title-mark"></span><div><strong>Двор</strong></div></div>
+          <div class="world-settings" role="group" aria-label="Настройки отображения и звука">
+            <button id="soundToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить звуковые эффекты">Звук выкл</button>
+            <button id="qualityToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить экономный режим отображения">Графика</button>
+          </div>
+          <div class="camera-tools" role="group" aria-label="Управление камерой">
+            <button type="button" id="cameraLeft" aria-label="Повернуть камеру влево" title="Повернуть влево">↶</button>
+            <button type="button" id="cameraRight" aria-label="Повернуть камеру вправо" title="Повернуть вправо">↷</button>
+            <button type="button" id="cameraReset" aria-label="Вернуть исходный вид" title="Сбросить камеру"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.7-6.2"/><path d="M3.5 4.5v4.8h4.8"/><circle cx="12" cy="12" r="2"/></svg></button>
+          </div>
+        </div>
+
+        <div id="renderHost" class="render-host" aria-label="Интерактивный 3D-двор">
+          <div id="loading" class="loading" role="status"><span class="loading-ring"></span><span>Создаём двор…</span></div>
+        </div>
+
+        <section id="sceneBinBar" class="scene-bin-bar" aria-label="Куда отнести выбранный предмет?">
+          <div class="scene-bin-caption">
+            <span class="scene-bin-eye" aria-hidden="true"></span><span id="sceneBinTitle">КОНТЕЙНЕРЫ</span>
+            <span class="scene-bin-subtitle" id="sceneBinStatus">Выбери предмет</span>
+          </div>
+          <div class="scene-bin-scroll" id="sceneBinScroll" role="group" aria-label="Выбор контейнера в трёхмерном дворе">
+            <button type="button" class="scene-bin-chip" data-bin-scene="paper" style="--chip:#b99f6e"><span class="chip-mark" aria-hidden="true"></span><span>Бумага</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="glass" style="--chip:#638f75"><span class="chip-mark" aria-hidden="true"></span><span>Стекло</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="plastic" style="--chip:#728da6"><span class="chip-mark" aria-hidden="true"></span><span>Пластик</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="metal" style="--chip:#969b99"><span class="chip-mark" aria-hidden="true"></span><span>Металл</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="special" style="--chip:#c58a6c"><span class="chip-mark" aria-hidden="true"></span><span>Батарейки</span></button>
+          </div>
+        </section>
+
+        <div class="world-footer">
+          <div class="scene-hint"><span class="gesture-icon" aria-hidden="true">↗</span><span>Выбирай вещи и объекты в 3D <span class="hint-divider">·</span> Поверни двор жестом</span></div>
+          <div class="world-foot-right"><span id="sunLabel">Тихое утро</span><span class="foot-dot"></span><span>3D-сцена</span></div>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+        <div class="learning-note" id="learningNote" hidden>
+          <button class="note-close" id="closeNote" aria-label="Закрыть объяснение">×</button>
+          <span class="eyebrow" id="noteEyebrow">ХОРОШИЙ ВЫБОР</span>
+          <p id="noteText"></p>
+          <button type="button" id="noteNext" class="note-action">Продолжить <span aria-hidden="true">→</span></button>
+        </div>
+
+        <div id="complete" class="complete-screen" hidden>
+          <div class="complete-inner">
+            <div class="completion-icon" aria-hidden="true">✓</div>
+            <span class="eyebrow">ПЕРВАЯ ИСТОРИЯ ГОТОВА</span>
+            <h2>Во дворе стало чище.</h2>
+            <p>Шесть вещей нашли своё место. Это маленькое действие, но из таких и складывается привычка.</p>
+            <div class="completion-buttons">
+              <button type="button" id="explore" class="complete-primary">Посмотреть двор <span aria-hidden="true">→</span></button>
+              <button type="button" id="again" class="complete-secondary">Сыграть ещё раз</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="rightbar" aria-label="Дневник двора">
+        <div class="right-heading"><span class="eyebrow">ПОЛЕВЫЕ ЗАМЕТКИ</span><span class="right-decoration">✳</span></div>
+        <div class="chapter-number">01<span>/03</span></div>
+        <h2>Вещам<br>нужен шанс</h2>
+        <p>Газета, банка, батарейка — каждая вещь требует своего пути. Некоторые можно переработать, а другие нужно собирать отдельно.</p>
+        <div class="right-divider"></div>
+        <div class="impact-title">ЧТО УЖЕ ИЗМЕНИЛОСЬ</div>
+        <div class="impact-row"><div class="impact-ring">01</div><div><strong id="countSorted">0 вещей</strong><small>отправлено в подходящий сбор</small></div></div>
+        <div class="impact-row"><div class="impact-ring">02</div><div><strong id="countPaper">0 бумажных</strong><small>подготовлено к сдаче</small></div></div>
+        <div class="right-divider"></div>
+        <div class="fact">
+          <div class="fact-mark">i</div>
+          <div><strong>На заметку</strong><p id="factText">Правила сортировки могут отличаться в разных городах. Перед сдачей сверяйся с правилами своего пункта приёма.</p></div>
+        </div>
+        <div class="right-spacer"></div>
+        <div class="chapter-footer"><span>ЭКО-ФЕРМА / 3D</span><strong id="storySummary">История продолжается</strong></div>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>
