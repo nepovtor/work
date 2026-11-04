@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createStory } from './story.js';
-import { createPolish } from './polish.js?v=2';
+import { createPolish } from './polish.js?v=3';
 import { createArtWorld } from './art-world.js';
 
 /**
@@ -190,7 +190,11 @@ const mat={
 const allPickables=[],itemGroups=new Map(),binGroups=new Map();
 const sways=[],animals=[];
 function addMesh(parent,geometry,material,x=0,y=0,z=0,cast=true){
-  const o=new THREE.Mesh(geometry,material);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;parent.add(o);return o;
+  const o=new THREE.Mesh(geometry,material);o.position.set(x,y,z);
+  // Tiny details still render, but no longer occupy individual shadow-map draws.
+  if(cast && !geometry.boundingSphere)geometry.computeBoundingSphere();
+  o.castShadow=cast && (geometry.boundingSphere?.radius??1)>=.27;
+  o.receiveShadow=true;parent.add(o);return o;
 }
 function box(parent,w,h,d,material,x=0,y=0,z=0){
   return addMesh(parent,new THREE.BoxGeometry(w,h,d),material,x,y,z);
@@ -269,12 +273,8 @@ for(let i=0;i<7;i++){box(scene,2.55,.021,.045,mat.pathShade,-4.7,.75,-5.1+i*2.0)
 // Specks give the ground a deliberate, tactile material.
 function mulberry32(seed){return()=>{let t=seed+=0x6d2b79f5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296}}
 const rand=mulberry32(6914);
-for(let i=0;i<150;i++){
-  const x=(rand()-.5)*22.8,z=(rand()-.5)*16.2;
-  if(Math.abs(z-3.1)<2.1||Math.abs(x+4.7)<1.8||z< -4.3)continue;
-  const clump=group(scene,x,.78,z);
-  const blade=cylinder(clump,.04,.055,.14, i%3?mat.grassLight:mat.grassDark,0,0,0,5);blade.rotation.z=(rand()-.5)*.7;
-}
+// Foreground grass is already authored as a single InstancedMesh in art-world.js.
+// Removing this legacy per-blade mesh loop cuts dozens of needless draw calls.
 // Garden fencing — drawn as repeated geometry to avoid an asset dependency.
 function fence(startX,endX,z){
   for(let x=startX;x<endX;x+=.95){
@@ -287,35 +287,52 @@ fence(-11,-8.6,-8.2);fence(-1.5,10.9,-8.2);
 fence(-11,-9.8,8.0);fence(8.8,10.9,8.0);
 
 // Branching canopies in layered botanical greens, not uniform round blobs.
-const leafMaterials=[
-  M('#456c54',.92),M('#587d5f',.96),M('#709174',.93),
-  M('#8da582',.96),M('#607e67',.94),M('#99ae85',.96)
-];
+// Shared instanced canopy materials: one tree now uses ~2 batched renderers,
+// rather than separate draw calls for every twig and leaf cluster.
+const leafPalette=['#456c54','#587d5f','#709174','#8da582','#607e67','#99ae85'];
+const treeBranchGeometry=new THREE.CylinderGeometry(.055,.115,1.35,6);
+const treeCanopyGeometry=new THREE.IcosahedronGeometry(1,1);
+const treeCanopyMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.94});
+const tempTreePart=new THREE.Object3D();
 function createTree(x,z,scale=1,index=0){
   const trunk=group(scene,x,.76,z);
   trunk.name='tree:'+index+':'+x;
   cylinder(trunk,.155,.27,2.65,mat.wood,0,1.26,0,9);
-  const root=group(trunk,0,1.75,0);
-  const count=7+(index%3);
+  const root=group(trunk,0,1.75,0),count=7+(index%3);
+  const branchMesh=new THREE.InstancedMesh(treeBranchGeometry,mat.wood,count);
+  branchMesh.name='tree:batched-branches';
+  branchMesh.castShadow=false;branchMesh.frustumCulled=false;
+  const leavesCount=count+Math.ceil(count/2)+1;
+  const leaves=new THREE.InstancedMesh(treeCanopyGeometry,treeCanopyMaterial,leavesCount);
+  leaves.name='tree:batched-canopy';leaves.castShadow=true;leaves.receiveShadow=true;
+  leaves.frustumCulled=false;
+  let leafIndex=0;
+  function leafPart(radius,materialIndex,px,py,pz,sx,sy,sz){
+    tempTreePart.position.set(px,py,pz);
+    tempTreePart.rotation.set(0,0,0);
+    tempTreePart.scale.set(radius*sx,radius*sy,radius*sz);
+    tempTreePart.updateMatrix();
+    leaves.setMatrixAt(leafIndex,tempTreePart.matrix);
+    leaves.setColorAt(leafIndex,new THREE.Color(leafPalette[materialIndex%leafPalette.length]));
+    leafIndex++;
+  }
   for(let i=0;i<count;i++){
     const angle=i*Math.PI*2/count+(index*.47);
     const spread=.68+.20*(i%3);
     const dx=Math.cos(angle)*spread,dz=Math.sin(angle)*spread;
     const canopyY=.68+(i%3)*.23;
-    const branch=cylinder(root,.055,.115,1.35,mat.wood,dx*.43,.04,dz*.43,6);
-    branch.rotation.z=-Math.cos(angle)*.58;
-    branch.rotation.x=Math.sin(angle)*.58;
-    const cluster=sphere(root,.66+(i%4)*.065,
-      leafMaterials[(index+i)%leafMaterials.length],dx,canopyY,dz);
-    cluster.scale.set(1.03,.73,1.00);
-    if(i%2===0){
-      const newGrowth=sphere(root,.39,leafMaterials[(index+i+3)%leafMaterials.length],
-        dx*.78,canopyY+.38,dz*.78);
-      newGrowth.scale.set(.85,.68,1.04);
-    }
+    tempTreePart.position.set(dx*.43,.04,dz*.43);
+    tempTreePart.rotation.set(Math.sin(angle)*.58,0,-Math.cos(angle)*.58);
+    tempTreePart.scale.set(1,1,1);
+    tempTreePart.updateMatrix();branchMesh.setMatrixAt(i,tempTreePart.matrix);
+    leafPart(.66+(i%4)*.065,index+i,dx,canopyY,dz,1.03,.73,1.0);
+    if(i%2===0)leafPart(.39,index+i+3,dx*.78,canopyY+.38,dz*.78,.85,.68,1.04);
   }
-  const crown=sphere(root,.77,leafMaterials[(index+2)%leafMaterials.length],0,1.12,0);
-  crown.scale.set(.93,.76,.96);
+  leafPart(.77,index+2,0,1.12,0,.93,.76,.96);
+  branchMesh.instanceMatrix.needsUpdate=true;
+  leaves.instanceMatrix.needsUpdate=true;
+  if(leaves.instanceColor)leaves.instanceColor.needsUpdate=true;
+  root.add(branchMesh,leaves);
   root.rotation.z=(rand()-.5)*.045;
   trunk.scale.setScalar(scale);
   sways.push({obj:root,base:root.rotation.z,phase:rand()*7,amp:.008+rand()*.014});
@@ -732,7 +749,7 @@ function tick(){
     }
   }
   polish?.tick(time,dt);
-  artwork?.tick(time,dt,polish?.diagnostics().eco);
+  artwork?.tick(time,dt,polish?.isEconomy());
   renderer.render(scene,camera);
 }
 if(new URLSearchParams(location.search).has('qa')) {
@@ -751,6 +768,8 @@ if(new URLSearchParams(location.search).has('qa')) {
       })),
       rasterSigns,
       groundLayers:{plinthTop:plinth.position.y+.85,grassTop:bed.position.y+.09,pathTop:path1.position.y+.06},
+      render:{calls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,
+        geometries:renderer?.info.memory.geometries||0,textures:renderer?.info.memory.textures||0},
       rendered:!!renderer,
       dpr:renderer?.getPixelRatio()||0
     };

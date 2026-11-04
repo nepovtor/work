@@ -354,5 +354,5 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
   };
   // Read-only, predictable telemetry for the shipped QA page.
   Object.defineProperty(window,'__eco3dDiagnostics',{configurable:true,value:diagnostics});
-  return {createCharacter:makeCharacter,tick,setChapter,sound,quality,toggleSound,updateResolution,diagnostics};
+  return {createCharacter:makeCharacter,tick,setChapter,sound,quality,toggleSound,updateResolution,isEconomy:()=>eco,diagnostics};
 }

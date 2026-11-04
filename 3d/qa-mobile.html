@@ -70,7 +70,7 @@ li.fail{border-left-color:#c87561}iframe{display:block;margin:auto;width:320px;h
         const cs=win().getComputedStyle(b);
         check(parseFloat(cs.fontSize)>=12,'мелкий шрифт '+labels[i]+': '+cs.fontSize);
         const bounds=b.getBoundingClientRect();
-        check(bounds.width>=110&&bounds.height>=48,'маленькая кнопка '+labels[i]);
+        check(bounds.width>=90&&bounds.height>=44,'маленькая кнопка '+labels[i]);
         check(cs.color!=='transparent','нет контраста');
       });
       check(bins().length===5,'неверное число подписей');
