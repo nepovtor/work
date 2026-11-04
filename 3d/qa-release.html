@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Эко-Ферма · Релизная приёмка</title>
+<style>
+body{font:14px/1.5 system-ui,sans-serif;color:#243c2e;background:#eaf0e8;margin:auto;max-width:920px;padding:22px}
+h1{font-size:24px;letter-spacing:-.6px}
+#summary{padding:14px;background:#fff;border-left:5px solid #629270;border-radius:9px;font-weight:750}
+#results{padding:0;list-style:none;display:grid;gap:7px}
+li{padding:10px 12px;background:#fff;border-left:4px solid #589f74;border-radius:7px}
+li.fail{border-left-color:#b95b4e}
+.frame{background:#d3e0d3;padding:12px;border-radius:13px;overflow-x:auto}
+iframe{display:block;margin:auto;width:320px;height:568px;border:1px solid #abc6ad;border-radius:12px;background:#c8d7c9}
+</style></head><body>
+<h1>Финальная приёмка мобильного интерфейса</h1>
+<p>Проверяется, что все пять контейнеров видны одновременно, доступные кнопки не перекрываются, 3D-сцена работает, сортировка и сохранение не нарушены.</p>
+<div id="summary" role="status">Проверяем…</div><ol id="results"></ol>
+<div class="frame"><iframe id="frame" src="./index.html?qa=1" title="Эко-Ферма на тестовом телефоне"></iframe></div>
+<script>
+(async()=>{
+const f=document.getElementById('frame'),summary=document.getElementById('summary'),results=document.getElementById('results');
+const keys=['ecoFarm3D.stage1.qa','ecoFarm3D.story.qa','ecoFarm3D.settings.qa'],passed=[];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)),doc=()=>f.contentDocument,win=()=>f.contentWindow;
+const assert=(v,m)=>{if(!v)throw Error(m)};
+const wait=async(fn,limit=23000)=>{const t=Date.now();while(Date.now()-t<limit){try{const v=fn();if(v)return v}catch{}await sleep(70)}throw Error('Тайм-аут загрузки '+JSON.stringify(win().__ecoErrors||[]))};
+async function test(label,fn){try{const note=await fn();passed.push(true);const li=document.createElement('li');li.textContent='✓ '+label+(note?' — '+note:'');results.append(li)}
+catch(e){passed.push(false);const li=document.createElement('li');li.className='fail';li.textContent='✕ '+label+': '+e.message;results.append(li);throw e}}
+const rect=el=>el.getBoundingClientRect();
+const bins=()=>[...doc().querySelectorAll('.scene-bin-chip')];
+try{
+ await test('Сцена запускается и пять контейнеров доступны',async()=>{
+  await wait(()=>win().__eco3dBinAudit&&doc().querySelectorAll('.object-item').length===6);
+  assert(win().__eco3dDiagnostics().rendered,'WebGL не инициализирован');
+  assert(bins().length===5,'Количество категорий отличается от 5');
+ });
+ for(const [width,height] of [[320,568],[360,700],[390,844],[430,900],[768,1024]]){
+  await test(width+'×'+height+': все пять контейнеров видны без горизонтальной прокрутки',async()=>{
+   f.style.width=width+'px';f.style.height=height+'px';await sleep(380);
+   const d=doc(),w=win(),bar=d.getElementById('sceneBinBar'),container=d.getElementById('sceneBinScroll');
+   assert(Math.abs(w.innerWidth-width)<4,'неверная ширина экрана');
+   assert(d.body.scrollWidth<=width+3,'горизонтальная прокрутка документа');
+   assert(container.scrollWidth<=container.clientWidth+3,'контейнеры скрываются за свайпом');
+   const boundary=rect(bar),world=rect(d.querySelector('.world'));
+   assert(boundary.left>=world.left-2&&boundary.right<=world.right+2,'панель шире двора');
+   assert(boundary.bottom<=world.bottom+3,'панель ниже 3D-сцены');
+   for(const b of bins()){
+     const r=rect(b);
+     assert(r.width>=84&&r.height>=44,'слишком маленькая область касания '+b.textContent.trim());
+     assert(r.left>=boundary.left-2&&r.right<=boundary.right+2,'категория обрезана: '+b.textContent.trim());
+     assert(r.top>=boundary.top-2&&r.bottom<=boundary.bottom+2,'кнопка выходит из панели');
+   }
+   const a=bins().map(x=>Math.round(rect(x).top)),rows=[...new Set(a)];
+   assert(rows.length===2,'не две строки контейнеров: '+JSON.stringify(rows));
+   return '5 категорий, 2 ряда, без обрезки';
+  });
+ }
+ f.style.width='390px';f.style.height='844px';await sleep(300);
+ await test('Надписи категорий существуют как HTML-текст, не текстуры WebGL',()=>{
+   const names=['Бумага','Стекло','Пластик','Металл','Батарейки'];
+   const b=bins(),w=win();
+   b.forEach((btn,i)=>{
+     assert(btn.textContent.includes(names[i]),'неверная категория '+i);
+     assert(parseFloat(w.getComputedStyle(btn).fontSize)>=11,'слишком мелкий шрифт '+i);
+   });
+   assert(win().__eco3dBinAudit().rasterSigns===0,'в 3D найдена текстовая CanvasTexture');
+ });
+ await test('Стеклянная навигация не закрывает карточки предметов',()=>{
+   const d=doc(),header=rect(d.querySelector('.masthead')),panel=rect(d.querySelector('.panel')),
+     world=rect(d.querySelector('.world')),bar=rect(d.getElementById('sceneBinBar'));
+   assert(header.bottom<=bar.top,'навигация перекрывает сортировку');
+   assert(panel.height>110&&world.height>220,'тесная мобильная компоновка');
+   assert(d.querySelector('.object-item').getBoundingClientRect().height>=44,'слишком маленькая карточка');
+ });
+ await test('Управление камерой и настройками доступно для касания',()=>{
+   for(const id of ['soundToggle','qualityToggle','cameraReset']){
+     const el=doc().getElementById(id),r=rect(el);
+     assert(r.width>=44&&r.height>=44,'маленькая кнопка '+id);
+     assert(el.getAttribute('aria-label'),'нет доступной подписи '+id);
+   }
+ });
+ await test('Неудачная сортировка не начисляет прогресс',()=>{
+   const item=[...doc().querySelectorAll('.object-item')].find(x=>x.textContent.includes('Старая газета'));
+   assert(item,'газета не найдена');item.click();
+   doc().querySelector('[data-bin-scene="glass"]').click();
+   assert(doc().getElementById('missionCount').textContent.trim()==='0 / 6','награда за ошибку');
+   assert(!doc().getElementById('learningNote').hidden,'нет объяснения');
+ });
+ await test('Верная сортировка сохраняется после перезагрузки',async()=>{
+   doc().querySelector('[data-bin-scene="paper"]').click();
+   await wait(()=>doc().getElementById('missionCount').textContent.trim()==='1 / 6',9000);
+   const done=new Promise(resolve=>f.addEventListener('load',resolve,{once:true}));
+   win().location.reload();await done;
+   await wait(()=>win().__eco3dArtAudit&&doc().querySelectorAll('.object-item').length===6);
+   assert(doc().getElementById('missionCount').textContent.trim()==='1 / 6','прогресс потерян');
+ });
+ await test('Показатели WebGL доступны для диагностики без ошибок',()=>{
+  const render=win().__eco3dBinAudit().render;
+  assert(render&&Number.isFinite(render.calls)&&render.calls>0,'неполные метрики WebGL');
+  assert(Number.isFinite(render.triangles)&&render.triangles>0,'неверные треугольники');
+  assert(Number.isFinite(render.geometries)&&render.geometries>0,'нет геометрии');
+  return render.calls+' draw calls; '+render.triangles+' треугольников';
+ });
+}catch(e){}
+finally{
+ const n=passed.filter(Boolean).length;
+ summary.textContent='Проверки: '+n+' / '+passed.length+' успешно'+(n===passed.length?' — релизная приёмка пройдена':' — обнаружена проблема');
+ summary.style.borderLeftColor=n===passed.length?'#528d67':'#b96150';
+ keys.forEach(k=>localStorage.removeItem(k));
+}
+})();
+</script></body></html>
