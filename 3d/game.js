@@ -78,6 +78,18 @@ function hideNote(){els.learningNote.hidden=true}
 els.closeNote.addEventListener('click',hideNote);
 els.noteNext.addEventListener('click',hideNote);
 
+function itemIcon(id){
+  // Original crisp vector icons; accessible name remains in the button text.
+  const drawings={
+    newspaper:'<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M7.5 7.5h5v5h-5zM15 7.5h2M15 10h2M7.5 15.5H17M7.5 18H17"/>',
+    box:'<path d="M12 2.5 3 7.5v9l9 5 9-5v-9l-9-5Z"/><path d="m3 7.5 9 5 9-5M12 12.5v9M7.5 5l9 5"/>',
+    bottle:'<path d="M10 2h4v3h-4zM9 5.5h6v2.5c0 2 3 3.5 3 6v6.5c0 1-.8 1.5-1.5 1.5h-9C6.8 22 6 21.5 6 20.5V14c0-2.5 3-4 3-6V5.5Z"/><path d="M6 14h12M6 18h12"/>',
+    jar:'<path d="M5 4h14v3H5zM7 7h10c1 2 2 3.5 2 6v6.5A2.5 2.5 0 0 1 16.5 22h-9A2.5 2.5 0 0 1 5 19.5V13c0-2.5 1-4 2-6Z"/><path d="M5 15h14"/>',
+    can:'<ellipse cx="12" cy="4.5" rx="6.5" ry="2.2"/><path d="M5.5 4.5v15c0 1.5 3 2.5 6.5 2.5s6.5-1 6.5-2.5v-15M5.5 9.5c1.8 2.4 11.2 2.4 13 0M8 16h8"/>',
+    battery:'<rect x="5" y="5" width="14" height="16" rx="2"/><path d="M10 2h4v3M12 9v7M8.5 12.5h7"/>'
+  };
+  return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(drawings[id]||drawings.box)+'</svg>';
+}
 function renderInventory(){
   els.objectList.replaceChildren();
   items.forEach((item)=>{
@@ -88,7 +100,7 @@ function renderInventory(){
     if(done)btn.classList.add('done');
     btn.disabled=done;
     btn.setAttribute('aria-pressed', String(state.selected===item.id));
-    btn.innerHTML='<span class="object-icon" aria-hidden="true">'+(done?'✓':item.short)+'</span><span class="object-label">'+item.name+'</span><span class="object-arrow" aria-hidden="true">'+(done?'✓':'→')+'</span>';
+    btn.innerHTML='<span class="object-icon" aria-hidden="true">'+(done?'✓':itemIcon(item.id))+'</span><span class="object-label">'+item.name+'</span><span class="object-arrow" aria-hidden="true">'+(done?'✓':'→')+'</span>';
     btn.addEventListener('click',()=>selectItem(item.id));
     els.objectList.appendChild(btn);
   });
