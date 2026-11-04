@@ -1,0 +1,71 @@
+/* Eco-Farm stage 3. Utility, not decoration. */
+.world-top {align-items:flex-start;gap:9px;flex-wrap:wrap}
+.world-title {margin-right:auto}
+.world-settings {display:flex;gap:6px;pointer-events:auto}
+.hud-option {
+  min-height:43px;min-width:104px;
+  background:rgba(250,251,243,.92);
+  border:1px solid #d6e1d1;border-radius:11px;
+  color:#496351;display:inline-flex;align-items:center;
+  justify-content:center;gap:7px;padding:10px 12px;
+  font:750 11px/1.15 var(--mono);backdrop-filter:blur(12px);
+  box-shadow:0 4px 12px rgba(43,70,48,.04);
+  transition:background .17s,transform .17s,border-color .17s;
+}
+.hud-option:hover {background:#fffdf5;transform:translateY(-1px);border-color:#a8c4aa}
+.hud-option[aria-pressed="true"] {color:#275940;background:#e6efe2;border-color:#b5d0b5}
+.hud-control-icon {font-size:19px;line-height:1;font-weight:600;width:17px;text-align:center}
+.camera-tools button {min-width:43px;min-height:43px;width:43px;height:43px}
+.scene-hint {font-size:10px;box-shadow:0 6px 16px rgba(43,64,45,.05)}
+.scene-hint .gesture-icon {font-size:17px}
+.story-shell .story-action,.story-choice,.story-answers button,.bin-button,.object-item,.note-action,.restart,.story-next {min-height:44px}
+body,button{touch-action:manipulation}
+.render-host canvas {touch-action:none;cursor:grab}
+.render-host canvas:active {cursor:grabbing}
+.render-host canvas:focus-visible {outline:4px solid #d19a6d;outline-offset:-6px}
+.impact-ring {font-variant-numeric:tabular-nums}
+.story-question button:focus-visible,.bin-button:focus-visible,.story-choice:focus-visible {outline:3px solid #d28e67;outline-offset:2px}
+#complete .complete-inner {border:1px solid #e0e5d7}
+@media (max-width:1250px) and (min-width:851px){
+  .world-top {flex-wrap:wrap}
+  .world-title{width:100%;margin-bottom:2px}
+  .world-settings{margin-right:auto}
+}
+@media (max-width:1050px){
+  .world-title {padding:11px 12px}
+  .world-title small {font-size:9px}
+  .world-settings{gap:4px}
+  .hud-option{min-width:94px;padding:8px 9px;min-height:42px;font-size:10px}
+  .camera-tools{gap:4px}
+  .camera-tools button {width:42px;min-width:42px;height:42px;min-height:42px}
+}
+@media (max-width:650px){
+  .world-top {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;padding:12px}
+  .world-title {grid-column:1/-1;margin:0;width:auto;max-width:100%}
+  .world-settings {grid-column:1;margin:0}
+  .camera-tools {grid-column:2;justify-content:end}
+  .hud-option {font-size:10px;padding:7px 8px;min-width:0;min-height:43px}
+  .camera-tools button {width:43px;height:43px}
+  .world-footer {bottom:0}
+  .scene-hint {font-size:9px}
+}
+@media (max-width:380px){
+  .world-top {gap:6px;padding:9px}
+  .hud-option {font-size:9px;gap:3px}
+  .camera-tools{gap:3px}
+  .camera-tools button {min-width:44px;width:44px;min-height:44px;height:44px}
+  .scene-hint .hint-divider {display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .world-settings button,.camera-tools button,.story-choice{transition:none!important;transform:none!important}
+}
+
+@media(max-width:370px){
+  .hud-option {width:44px;min-width:44px;min-height:44px;padding:8px;justify-content:center}
+  .hud-option>span:not(.hud-control-icon){display:none}
+  .camera-tools button{min-height:44px;height:44px;min-width:44px;width:44px}
+}
+
+/* Accessible pointer targets; icon buttons remain usable at desktop sizes. */
+.camera-tools button{min-width:44px;min-height:44px;width:44px;height:44px}
+.hud-option{min-height:44px}
