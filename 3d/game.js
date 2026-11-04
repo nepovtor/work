@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createStory } from './story.js';
 import { createPolish } from './polish.js?v=2';
+import { createArtWorld } from './art-world.js';
 
 /**
  * Эко-Ферма 3D — первый игровой фрагмент.
@@ -284,19 +285,42 @@ function fence(startX,endX,z){
 fence(-11,-8.6,-8.2);fence(-1.5,10.9,-8.2);
 fence(-11,-9.8,8.0);fence(8.8,10.9,8.0);
 
+// Branching canopies in layered botanical greens, not uniform round blobs.
+const leafMaterials=[
+  M('#456c54',.92),M('#587d5f',.96),M('#709174',.93),
+  M('#8da582',.96),M('#607e67',.94),M('#99ae85',.96)
+];
 function createTree(x,z,scale=1,index=0){
   const trunk=group(scene,x,.76,z);
-  const trunkBody=cylinder(trunk,.19,.27,2.1,mat.wood,0,1.01,0,7);
-  trunkBody.castShadow=true;
-  const root=group(trunk,0,1.7,0);
-  const palette=[M('#568969'),M('#70a274'),M('#83aa7d'),M('#8cac80'),M('#628f76')];
-  sphere(root,1.17,palette[index%palette.length],-.4,.38,0);
-  sphere(root,1.07,palette[(index+1)%palette.length],.58,.44,-.15);
-  sphere(root,.98,palette[(index+2)%palette.length],0,.94,.23);
-  sphere(root,.82,palette[index%palette.length],0,.15,.7);
-  root.rotation.z=(rand()-.5)*.07;
-  trunk.scale.setScalar(scale);sways.push({obj:root,base:root.rotation.z,phase:rand()*7,amp:.018+rand()*.022});
-  const shadow=addMesh(scene,new THREE.CircleGeometry(1.15,18),new THREE.MeshBasicMaterial({color:0x3b5b44,transparent:true,opacity:.12,depthWrite:false}),x,.742,z,false);
+  trunk.name='tree:'+index+':'+x;
+  cylinder(trunk,.155,.27,2.65,mat.wood,0,1.26,0,9);
+  const root=group(trunk,0,1.75,0);
+  const count=7+(index%3);
+  for(let i=0;i<count;i++){
+    const angle=i*Math.PI*2/count+(index*.47);
+    const spread=.68+.20*(i%3);
+    const dx=Math.cos(angle)*spread,dz=Math.sin(angle)*spread;
+    const canopyY=.68+(i%3)*.23;
+    const branch=cylinder(root,.055,.115,1.35,mat.wood,dx*.43,.04,dz*.43,6);
+    branch.rotation.z=-Math.cos(angle)*.58;
+    branch.rotation.x=Math.sin(angle)*.58;
+    const cluster=sphere(root,.66+(i%4)*.065,
+      leafMaterials[(index+i)%leafMaterials.length],dx,canopyY,dz);
+    cluster.scale.set(1.03,.73,1.00);
+    if(i%2===0){
+      const newGrowth=sphere(root,.39,leafMaterials[(index+i+3)%leafMaterials.length],
+        dx*.78,canopyY+.38,dz*.78);
+      newGrowth.scale.set(.85,.68,1.04);
+    }
+  }
+  const crown=sphere(root,.77,leafMaterials[(index+2)%leafMaterials.length],0,1.12,0);
+  crown.scale.set(.93,.76,.96);
+  root.rotation.z=(rand()-.5)*.045;
+  trunk.scale.setScalar(scale);
+  sways.push({obj:root,base:root.rotation.z,phase:rand()*7,amp:.008+rand()*.014});
+  const shadow=addMesh(scene,new THREE.CircleGeometry(1.16,24),
+    new THREE.MeshBasicMaterial({color:0x35513d,transparent:true,opacity:.09,depthWrite:false}),
+    x,.742,z,false);
   shadow.rotation.x=-Math.PI/2;shadow.scale.set(1.4,.9,1);
 }
 createTree(-10,0.8,1.2,1);createTree(-10.6,-5.5,.92,2);
@@ -385,15 +409,25 @@ const pickup=group(scene,2.25,.76,-2.25);
 box(pickup,11.1,.14,2.6,mat.pathShade,0,-.05,0);
 function createBin(spec){
   const b=group(scene,spec.x,.83,-2.15);
-  const plastic=M(spec.color,.68);
-  box(b,1.42,1.57,1.24,plastic,0,.78,0);
-  box(b,1.51,.18,1.35,M(spec.color,.55),0,1.61,0);
+  const plastic=new THREE.MeshPhysicalMaterial({color:spec.color,roughness:.44,metalness:.035,clearcoat:.15,clearcoatRoughness:.5});
+  const main=addMesh(b,new THREE.BoxGeometry(1.42,1.57,1.24),plastic,0,.78,0);
+  main.castShadow=true;
+  box(b,1.51,.18,1.35,M(spec.color,.5),0,1.61,0);
+  box(b,1.36,.045,1.19,M('#344b3e',.88),0,1.49,0);
+  box(b,1.3,.04,.035,M('#d8ddd1',.75),0,1.55,.68);
+  for(const side of [-1,1]){
+    cylinder(b,.047,.047,.24,mat.charcoal,side*.49,1.60,-.60,10).rotation.x=Math.PI/2;
+    box(b,.075,1.20,.06,M(spec.color,.8),side*.61,.79,.645);
+  }
   box(b,.93,.1,.12,mat.charcoal,0,1.67,.56);
   box(b,1.24,.62,.055,mat.cream,0,1.04,.652);
   // Flat white enamel panel: the distinct, high-contrast 3D emblem is a mesh.
   box(b,1.24,.68,.06,new THREE.MeshBasicMaterial({color:0xfffdf3}),0,1.05,.678);
   binSymbol(b,spec.id);
-  for(const s of [-1,1])cylinder(b,.145,.145,.11,mat.charcoal,s*.49,.12,.45,12).rotation.z=Math.PI/2;
+  for(const side of [-1,1]){
+    cylinder(b,.145,.145,.11,mat.charcoal,side*.49,.12,.45,12).rotation.z=Math.PI/2;
+    cylinder(b,.052,.052,.12,M('#c7c9c1',.55,.28),side*.49,.12,.515,12).rotation.z=Math.PI/2;
+  }
   const h=box(b,.34,.14,.14,M(spec.color),0,1.52,-.69);
   h.rotation.x=.25;
   markClickable(b,'binId',spec.id);
@@ -669,6 +703,7 @@ if(observer)observer.observe(els.renderHost);
 window.addEventListener('resize',resize);
 const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const clock=new THREE.Clock();
+let artwork=null;
 let visible=true;
 document.addEventListener('visibilitychange',()=>{visible=!document.hidden});
 function tick(){
@@ -696,6 +731,7 @@ function tick(){
     }
   }
   polish?.tick(time,dt);
+  artwork?.tick(time,dt,polish?.diagnostics().eco);
   renderer.render(scene,camera);
 }
 if(new URLSearchParams(location.search).has('qa')) {
@@ -718,6 +754,7 @@ if(new URLSearchParams(location.search).has('qa')) {
     };
   }});
 }
+artwork = createArtWorld({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh});
 polish = createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root:els.renderHost,resize});
 story = createStory({THREE,scene,mat,M,group,box,cylinder,sphere,bench,addMesh,state,itemGroups,allPickables,showNote,announce,
   createCharacter:polish.createCharacter,sound:polish.sound,setChapter:polish.setChapter,
