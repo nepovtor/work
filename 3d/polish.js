@@ -5,7 +5,7 @@
  * copyrighted music or asset packs.
  */
 export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root,resize}) {
-  const key='ecoFarm3D.settings.v1';
+  const key=new URLSearchParams(location.search).has('qa') ? 'ecoFarm3D.settings.qa' : 'ecoFarm3D.settings.v1';
   const saved=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{return {}}})();
   const lowByDefault=(navigator.hardwareConcurrency||6)<=4 || (navigator.deviceMemory||8)<=3 ||
     matchMedia('(max-width: 600px)').matches;
