@@ -750,6 +750,7 @@ if(new URLSearchParams(location.search).has('qa')) {
         id, count:g.children.filter(x=>x.name==='material-pictogram:'+id).length
       })),
       rasterSigns,
+      groundLayers:{plinthTop:plinth.position.y+.85,grassTop:bed.position.y+.09,pathTop:path1.position.y+.06},
       rendered:!!renderer,
       dpr:renderer?.getPixelRatio()||0
     };
