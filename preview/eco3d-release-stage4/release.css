@@ -1,0 +1,72 @@
+/*
+  Stage 4: mobile acceptance corrections.
+  Five material categories must all be visible without a hidden horizontal swipe.
+  Glass belongs to navigation; real content retains an opaque, readable surface.
+*/
+@media (max-width:850px){
+  .scene-bin-scroll{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-auto-flow:row;
+    grid-auto-columns:auto;
+    align-items:stretch;
+    gap:7px;
+    overflow:visible;
+    scroll-snap-type:none;
+    padding:0;
+  }
+  .scene-bin-chip{
+    width:100%;
+    min-width:0;
+    min-height:48px;
+    white-space:normal;
+    overflow-wrap:normal;
+    padding:9px 9px;
+    text-align:left;
+    align-items:center;
+    font-size:clamp(11px,2.8vw,13px);
+    line-height:1.15;
+    scroll-snap-align:none;
+    gap:7px;
+  }
+  .scene-bin-chip .chip-mark{flex:0 0 5px;width:5px;min-width:5px}
+  .scene-bin-caption{font-size:10px;white-space:normal}
+  .scene-bin-subtitle{
+    max-width:54%;
+    min-width:0;
+    text-overflow:ellipsis;
+    overflow:hidden;
+    white-space:nowrap;
+  }
+  .scene-bin-bar{max-width:none}
+  .hud-option,.camera-tools button{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important}
+  .scene-bin-chip:focus-visible{
+    outline:3px solid #a85832;
+    outline-offset:2px;
+  }
+}
+@media (max-width:359px){
+  .scene-bin-bar{left:6px;right:6px;padding:9px 8px;gap:7px}
+  .scene-bin-scroll{gap:5px}
+  .scene-bin-chip{font-size:11px;padding:7px 6px;min-height:48px;gap:5px}
+  .scene-bin-subtitle{display:none}
+}
+@media (max-height:640px) and (max-width:850px) and (orientation:portrait){
+  .scene-bin-bar{bottom:17px;padding-top:8px;padding-bottom:8px}
+  .scene-bin-caption{display:none}
+  .scene-bin-scroll{gap:5px}
+  .scene-bin-chip{min-height:44px;padding:6px 8px}
+}
+@media (max-width:850px) and (orientation:landscape) and (max-height:540px){
+  .scene-bin-scroll{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .scene-bin-chip{min-height:40px;font-size:11px;padding:5px}
+  .scene-bin-bar{bottom:7px;padding:7px}
+  .world-settings,.camera-tools{gap:5px}
+}
+@media (prefers-contrast:more),(prefers-reduced-transparency:reduce){
+  .scene-bin-chip{background:#fff!important;border:2px solid #758c7c!important}
+  .scene-bin-chip.is-target{border-color:#9b512f!important;background:#fff0e1!important}
+}
+@media (prefers-reduced-motion:reduce){
+  .scene-bin-chip,.object-item{transition:none!important;animation:none!important}
+}
