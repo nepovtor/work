@@ -23,7 +23,7 @@ async function waitForServer() {
 }
 
 const names = [
-  ['art', 'qa-art.html', 11],
+  ['art', 'qa-art.html', 12],
   ['glass', 'qa-glass.html', 15],
   ['clarity', 'qa-clarity.html', 8],
   ['mobile', 'qa-mobile.html', 16],
