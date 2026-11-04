@@ -196,6 +196,7 @@ function markClickable(root,key,value){
 // Material names live in accessible, high-resolution HTML buttons.
 function binSymbol(parent,type){
   const symbol=group(parent,0,1.05,.744);
+  symbol.name='material-pictogram:'+type;
   const ink=new THREE.MeshBasicMaterial({color:0x243e31});
   const ivory=new THREE.MeshBasicMaterial({color:0xfffdf3});
   const detail=new THREE.MeshBasicMaterial({color:0x456451});
@@ -684,6 +685,26 @@ function tick(){
   }
   polish?.tick(time,dt);
   renderer.render(scene,camera);
+}
+if(new URLSearchParams(location.search).has('qa')) {
+  // Test-only structural check: no sign uses canvas/raster text.
+  Object.defineProperty(window,'__eco3dBinAudit',{configurable:true,value:()=>{
+    let rasterSigns=0;
+    scene.traverse(obj=>{
+      if(!obj.isMesh&&!obj.isSprite)return;
+      const list=Array.isArray(obj.material)?obj.material:[obj.material];
+      for(const material of list){if(material?.map?.isCanvasTexture)rasterSigns++;}
+    });
+    return {
+      categoryCount:binGroups.size,
+      pictograms:[...binGroups.entries()].map(([id,g])=>({
+        id, count:g.children.filter(x=>x.name==='material-pictogram:'+id).length
+      })),
+      rasterSigns,
+      rendered:!!renderer,
+      dpr:renderer?.getPixelRatio()||0
+    };
+  }});
 }
 polish = createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root:els.renderHost,resize});
 story = createStory({THREE,scene,mat,M,group,box,cylinder,sphere,bench,addMesh,state,itemGroups,allPickables,showNote,announce,
