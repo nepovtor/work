@@ -129,6 +129,11 @@ export function createStory(ctx) {
   }
   function render(){
     const d=DAYS[data.day-1],done=ready();
+    // First day: let players focus on the object carousel. Show the
+    // story continuation once sorting is complete. Later chapters show
+    // the mission panel immediately.
+    document.body.dataset.storyChapter=String(data.day);
+    document.body.dataset.storyReady=String(done);
     el.panel.hidden=false;
     el.title.textContent=d.title;
     el.text.textContent=d.desc;
