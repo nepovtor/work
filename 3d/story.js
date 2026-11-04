@@ -6,7 +6,7 @@
 export function createStory(ctx) {
   const { THREE, scene, mat, M, group, box, cylinder, sphere, bench,
     addMesh, state: intro, itemGroups, allPickables, showNote, announce,
-    createCharacter, sound, setChapter } = ctx;
+    createCharacter, sound, setChapter, onChapterChange } = ctx;
   const isQA = new URLSearchParams(location.search).has('qa');
   const KEY = isQA ? 'ecoFarm3D.story.qa' : 'ecoFarm3D.story.v1';
   const DAYS = [
@@ -151,6 +151,7 @@ export function createStory(ctx) {
     }
     if(el.summary)el.summary.textContent=data.day===7&&done?'История завершена':'История продолжается';
     syncWorld();
+    onChapterChange?.(data.day);
   }
   const physics={};
   const worldProps=new Map();
