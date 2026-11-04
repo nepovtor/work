@@ -138,7 +138,7 @@ function setCamera() {
 const renderer = (()=>{
   try {
     const r=new THREE.WebGLRenderer({alpha:false,antialias:true,powerPreference:'default'});
-    r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.65));
+    r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
     r.shadowMap.enabled=true;
     r.shadowMap.type=THREE.PCFSoftShadowMap;
     r.outputColorSpace=THREE.SRGBColorSpace;
@@ -192,39 +192,39 @@ function group(parent,x=0,y=0,z=0){const g=new THREE.Group();g.position.set(x,y,
 function markClickable(root,key,value){
   root.traverse(node=>{if(node.isMesh){node.userData[key]=value;allPickables.push(node)}});
 }
-function textureText(text,{bg='#ffffff',fg='#365244',size=58,weight=800,width=560,height=130}={}){
-  const c=document.createElement('canvas');c.width=width;c.height=height;const cx=c.getContext('2d');
-  cx.fillStyle=bg;cx.fillRect(0,0,width,height);
-  cx.fillStyle=fg;cx.textAlign='center';cx.textBaseline='middle';cx.font=weight+' '+size+'px Manrope, system-ui, sans-serif';
-  cx.fillText(text,width/2,height/2);
-  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=2;return tex;
-}
-function planeLabel(parent,text,width=.9,height=.31,y=1.1,z=.55,bg='#f3ebdc',fg='#253e34'){
-  const texture=textureText(text,{bg,fg,size:112,width:780,height:220});
-  return addMesh(parent,new THREE.PlaneGeometry(width,height),
-    new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false}),0,y,z,false);
-}
-function binPlacard(text){
-  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=228;
-  const ctx=canvas.getContext('2d');
-  // Square fallback supports older iOS Safari, where Canvas2D.roundRect is absent.
-  function plaque(x,y,w,h,r,color){
-    ctx.fillStyle=color;ctx.beginPath();
-    if(typeof ctx.roundRect==='function')ctx.roundRect(x,y,w,h,r);
-    else ctx.rect(x,y,w,h);
-    ctx.fill();
+// Every container is identified by geometry, not tiny rasterized lettering.
+// Material names live in accessible, high-resolution HTML buttons.
+function binSymbol(parent,type){
+  const symbol=group(parent,0,1.05,.744);
+  const ink=new THREE.MeshBasicMaterial({color:0x243e31});
+  const ivory=new THREE.MeshBasicMaterial({color:0xfffdf3});
+  const detail=new THREE.MeshBasicMaterial({color:0x456451});
+  if(type==='paper'){
+    box(symbol,.43,.52,.034,ink,-.035,0,0);
+    box(symbol,.43,.52,.034,ink,.05,-.045,.015);
+    for(let i=0;i<3;i++)box(symbol,.24,.026,.013,ivory,.04,.105-i*.105,.043);
+  }else if(type==='glass'){
+    cylinder(symbol,.075,.075,.15,ink,0,.19,.025,12);
+    cylinder(symbol,.145,.118,.32,ink,0,-.055,.025,12);
+    cylinder(symbol,.105,.105,.035,ivory,0,.29,.025,12);
+    box(symbol,.075,.075,.035,ivory,0,-.02,.166);
+  }else if(type==='plastic'){
+    cylinder(symbol,.09,.09,.12,ink,0,.207,.025,10);
+    cylinder(symbol,.15,.145,.40,ink,0,-.07,.025,10);
+    cylinder(symbol,.11,.11,.055,detail,0,-.075,.17,10);
+    cylinder(symbol,.093,.093,.045,ivory,0,.295,.025,10);
+  }else if(type==='metal'){
+    cylinder(symbol,.177,.177,.46,ink,0,0,.025,12);
+    cylinder(symbol,.182,.182,.052,detail,0,.24,.025,12);
+    cylinder(symbol,.182,.182,.052,detail,0,-.24,.025,12);
+    box(symbol,.20,.05,.022,ivory,0,0,.207);
+  }else if(type==='special'){
+    box(symbol,.29,.48,.09,ink,0,-.025,.03);
+    box(symbol,.115,.065,.09,ink,0,.255,.03);
+    box(symbol,.17,.033,.014,ivory,0,-.025,.083);
+    box(symbol,.033,.17,.014,ivory,0,-.025,.084);
   }
-  plaque(4,4,760,220,34,'#214535');
-  plaque(12,12,744,204,27,'#fffdf0');
-  ctx.fillStyle='#1f3c2e';ctx.font='900 94px Manrope,system-ui,sans-serif';
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  const measured=ctx.measureText(text).width;
-  if(measured>670)ctx.font='900 '+Math.floor(94*670/measured)+'px Manrope,system-ui,sans-serif';
-  ctx.fillText(text,384,119);
-  const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;
-  const material=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false,toneMapped:false});
-  const sprite=new THREE.Sprite(material);sprite.scale.set(2.02,.65,1);sprite.renderOrder=25;
-  return sprite;
+  return symbol;
 }
 // A real solid diorama, not an image or a CSS mockup.
 function roundedPlatform(w,d,r=.7) {
@@ -338,7 +338,8 @@ function workshop(x,z) {
   box(h,4.35,.17,.95,mat.terracotta,0,2.05,2.07);
   // simple striped awning, angled toward plaza
   for(let i=-4;i<=4;i++)box(h,.47,.055,1.08,i%2?mat.cream:mat.terracotta,i*.49,2.12,2.13).rotation.x=-.08;
-  const board=addMesh(h,new THREE.PlaneGeometry(2.8,.66),new THREE.MeshBasicMaterial({map:textureText('М А С Т Е Р С К А',{bg:'#f5e5bf',fg:'#47604d',size:43,width:600,height:148})}),0,2.67,1.77,false);
+  // A simple timber facade band replaces an unreadable canvas-texture sign.
+  box(h,2.8,.17,.12,mat.woodLight,0,2.67,1.79);
 }
 workshop(6.9,-5.6);
 // Park bench and planters
@@ -376,9 +377,9 @@ function createBin(spec){
   box(b,1.51,.18,1.35,M(spec.color,.55),0,1.61,0);
   box(b,.93,.1,.12,mat.charcoal,0,1.67,.56);
   box(b,1.24,.62,.055,mat.cream,0,1.04,.652);
-  planeLabel(b,spec.label,1.23,.5,1.04,.689,'#fffdf2','#1e3e2b');
-  const placard=binPlacard(spec.id==='special'?'ОСОБЫЙ СБОР':spec.label);
-  placard.position.set(0,2.27,.10);b.add(placard);
+  // Flat white enamel panel: the distinct, high-contrast 3D emblem is a mesh.
+  box(b,1.24,.68,.06,new THREE.MeshBasicMaterial({color:0xfffdf3}),0,1.05,.678);
+  binSymbol(b,spec.id);
   for(const s of [-1,1])cylinder(b,.145,.145,.11,mat.charcoal,s*.49,.12,.45,12).rotation.z=Math.PI/2;
   const h=box(b,.34,.14,.14,M(spec.color),0,1.52,-.69);
   h.rotation.x=.25;
@@ -386,7 +387,8 @@ function createBin(spec){
   binGroups.set(spec.id,b);
 }
 binSpecs.forEach(createBin);
-const binTitle=addMesh(scene,new THREE.PlaneGeometry(4.6,.75),new THREE.MeshBasicMaterial({map:textureText('ПУНКТ РАЗДЕЛЬНОГО СБОРА',{bg:'#f4e7cf',fg:'#425844',size:41,width:1024,height:150}),side:THREE.DoubleSide}),2.15,2.91,-3.13,false);
+// The recycling point relies on the crisp DOM category names, not a blurred banner.
+box(scene,4.6,.19,.13,mat.woodLight,2.15,2.85,-3.13);
 box(scene,4.7,.13,.1,mat.woodLight,2.15,2.47,-3.2);
 for(let s of [.05,4.32])box(scene,.12,2.6,.12,mat.woodLight,s,.95,-3.22);
 // Details: lamp, flowerbeds and freestanding sign
@@ -400,7 +402,9 @@ lamp(-7.6,3.3);lamp(9.7,-.7);
 const sign=group(scene,-1.4,.71,-7.1);
 box(sign,.14,1.6,.14,mat.wood,0,.8,0);
 box(sign,2.7,1.1,.12,mat.woodLight,0,1.72,0);
-addMesh(sign,new THREE.PlaneGeometry(2.5,.9),new THREE.MeshBasicMaterial({map:textureText('ДВОР 01',{bg:'#f3e2c1',fg:'#315441',size:66})}),0,1.72,.085,false);
+// Quiet timber information board; no unreadable 3D text texture.
+box(sign,2.42,.08,.045,mat.wood,0,1.93,.10);
+box(sign,2.42,.08,.045,mat.wood,0,1.55,.10);
 
 // Object-shaped 3D props. Each one remains a selectable group in the scene.
 function makeNewspaper(g) {
@@ -643,7 +647,9 @@ function resize(){
   const viewWidth=aspect<1.15?(w<650?29.2:31.3):Math.min(38,27+4*aspect);
   const viewHeight=viewWidth/aspect;
   camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=viewHeight/2;camera.bottom=-viewHeight/2;
-  camera.zoom=cameraZoom;camera.updateProjectionMatrix();renderer.setSize(w,h,false);
+  camera.zoom=cameraZoom;camera.updateProjectionMatrix();
+  polish?.updateResolution();
+  renderer.setSize(w,h,false);
 }
 const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
 if(observer)observer.observe(els.renderHost);
