@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Эко-Ферма — приёмка 3D-окружения</title>
+<style>
+*{box-sizing:border-box}body{font:14px/1.6 system-ui,sans-serif;color:#244334;background:#edf2e9;max-width:950px;margin:auto;padding:22px}
+h1{font-size:24px;letter-spacing:-.6px}p{color:#64796a}
+#summary{padding:15px;background:#fff;border-left:5px solid #799c7a;border-radius:10px;font-weight:800}
+#results{padding:0;list-style:none;display:grid;gap:7px}
+li{background:white;border-left:4px solid #5a9773;border-radius:8px;padding:10px 15px}
+li.fail{border-left-color:#bc7561}
+iframe{display:block;width:390px;height:730px;max-width:none;margin:auto;border:1px solid #b9cbb7;border-radius:13px;background:#dde6d9}
+.frame{overflow-x:auto;border-radius:14px;background:#d6e2d5;padding:15px}
+a{color:#315c3c}
+</style></head>
+<body>
+<h1>Третий этап · 3D-мир</h1>
+<p>Проверяем реальную геометрию окружения, количество деталей, отсутствие внешних растровых моделей, адаптивность, сортировку и сохранения. Тестовые ключи изолированы от пользовательских.</p>
+<div id="summary" role="status">Запускаю сцену…</div><ol id="results"></ol>
+<div class="frame"><iframe id="game" title="Эко-Ферма 3D" src="./index.html?qa=1"></iframe></div>
+<p><a href="./">Открыть игру</a></p>
+<script>
+(async()=>{
+ const frame=document.getElementById('game'),w=()=>frame.contentWindow,d=()=>frame.contentDocument;
+ const keys=['ecoFarm3D.stage1.qa','ecoFarm3D.story.qa','ecoFarm3D.settings.qa'];
+ const results=document.getElementById('results'),summary=document.getElementById('summary'),checks=[];
+ const pause=ms=>new Promise(r=>setTimeout(r,ms));
+ const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+ const wait=async(fn,ms=26000)=>{
+   const start=Date.now();
+   while(Date.now()-start<ms){try{const result=fn();if(result)return result}catch{}await pause(75)}
+   throw new Error('Превышено время '+JSON.stringify(w().__ecoErrors||[]).slice(0,300))
+ };
+ async function test(name,fn){
+  try{const detail=await fn();checks.push(true);const li=document.createElement('li');li.textContent='✓ '+name+(detail?' — '+detail:'');results.append(li)}
+  catch(e){checks.push(false);const li=document.createElement('li');li.className='fail';li.textContent='✕ '+name+': '+e.message;results.append(li);throw e}
+ }
+ const scene=()=>w().__eco3dArtAudit?.();
+ try{
+  await test('Загружается полноценная WebGL-сцена',async()=>{
+    await wait(()=>scene()&&d().querySelectorAll('.object-item').length===6);
+    assert(w().__eco3dDiagnostics().rendered===true,'WebGL недоступен');
+  });
+  await test('Основание больше не перекрывает траву и мощёные дорожки',()=>{
+    const a=w().__eco3dBinAudit().groundLayers;
+    assert(a&&a.plinthTop<a.grassTop&&a.plinthTop<a.pathTop,
+      'основание перекрывает детали: '+JSON.stringify(a));
+    return 'основание '+a.plinthTop.toFixed(2)+', трава '+a.grassTop.toFixed(2)+', дорожки '+a.pathTop.toFixed(2);
+  });
+  await test('Черепица и каменные дорожки сделаны геометрией',()=>{
+    const a=scene();assert(a.roofTiles>=100,'нет наборной черепицы '+a.roofTiles);
+    assert(a.stonePieces>=300,'не хватает каменных деталей '+a.stonePieces);
+    return a.roofTiles+' элементов кровли, '+a.stonePieces+' камней';
+  });
+  await test('Архитектура получила объёмные элементы',()=>{
+    const a=scene();assert(a.architecturalDetails>=35,'слишком мало деталей фасада '+a.architecturalDetails);
+    return a.architecturalDetails+' элементов';
+  });
+  await test('Озеленение и тихая анимация в сцене',()=>{
+    const a=scene();assert(a.planters>=5 && a.flowerHeads>=4 && a.grassPatches>=60,'неполное озеленение '+JSON.stringify(a));
+    assert(a.animated>=2,'отсутствуют подвижные детали');
+    return a.planters+' вазонов и '+a.grassPatches+' пучков травы';
+  });
+  await test('Ни внешних текстур, ни нечитаемых растровых вывесок',()=>{
+    const a=scene(),b=w().__eco3dBinAudit();
+    assert(a.textureDownloads===0&&a.canvasSigns===0,'растровые зависимости');
+    assert(b.rasterSigns===0,'есть Canvas-текст над сценой');
+    assert(b.pictograms.length===5&&b.pictograms.every(x=>x.count===1),'не все контейнеры различимы');
+  });
+  for(const width of [320,390,768]){
+    await test(width+'px: сцена и элементы управления не обрезаются',async()=>{
+      frame.style.width=width+'px';await pause(330);
+      assert(Math.abs(w().innerWidth-width)<4,'не совпадает ширина');
+      assert(d().body.scrollWidth<=width+3,'горизонтальное переполнение');
+      const world=d().querySelector('.world').getBoundingClientRect();
+      const bar=d().getElementById('sceneBinBar').getBoundingClientRect();
+      assert(world.height>210,'сцена слишком мала');
+      assert(bar.left>=world.left-2&&bar.right<=world.right+2,'контейнеры выходят за экран');
+      return 'ок';
+    });
+  }
+  await test('Пять HTML-категорий читаемы и остаются кликабельны',()=>{
+    const btn=[...d().querySelectorAll('[data-bin-scene]')];
+    assert(btn.length===5,'нет пяти кнопок');
+    for(const b of btn){const c=w().getComputedStyle(b),r=b.getBoundingClientRect();
+      assert(parseFloat(c.fontSize)>=12&&r.height>=44,'мелкие подписи '+b.textContent)}
+  });
+  await test('Сортировка и сохранения после перезагрузки работают',async()=>{
+    const item=[...d().querySelectorAll('.object-item')].find(x=>x.textContent.includes('Старая газета'));
+    assert(item,'не найдена газета');item.click();
+    d().querySelector('[data-bin-scene="paper"]').click();
+    await wait(()=>d().getElementById('missionCount').textContent.trim()==='1 / 6',9000);
+    const done=new Promise(r=>frame.addEventListener('load',r,{once:true}));w().location.reload();await done;
+    await wait(()=>scene() && d().querySelectorAll('.object-item').length===6);
+    assert(d().getElementById('missionCount').textContent.trim()==='1 / 6','сохранение пропало');
+  });
+  await test('Экономный режим не отключает игровой процесс',()=>{
+    const before=w().__eco3dDiagnostics().eco;
+    d().getElementById('qualityToggle').click();
+    assert(w().__eco3dDiagnostics().eco!==before,'качество не переключилось');
+    assert(scene().roofTiles>=100,'пропали элементы мира');
+    d().getElementById('qualityToggle').click();
+  });
+ }catch(e){}
+ finally {
+  const passed=checks.filter(Boolean).length;
+  summary.textContent='Проверки: '+passed+' / '+checks.length+' успешно'+(passed===checks.length?' — 3D-сцена работает':' — обнаружена проблема');
+  summary.style.borderLeftColor=passed===checks.length?'#559b71':'#bf6a5b';
+  keys.forEach(k=>localStorage.removeItem(k));
+ }
+})();
+</script></body></html>
