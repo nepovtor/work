@@ -97,6 +97,7 @@ try{
   assert(render&&Number.isFinite(render.calls)&&render.calls>0,'неполные метрики WebGL');
   assert(Number.isFinite(render.triangles)&&render.triangles>0,'неверные треугольники');
   assert(Number.isFinite(render.geometries)&&render.geometries>0,'нет геометрии');
+  assert(render.calls<600,'слишком много draw calls: '+render.calls+' (цель менее 600)');
   return render.calls+' draw calls; '+render.triangles+' треугольников';
  });
 }catch(e){}
