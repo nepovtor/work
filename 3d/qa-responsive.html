@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Эко-Ферма 3D · Проверка размеров экрана</title>
+<style>
+*{box-sizing:border-box}body{font:14px/1.6 system-ui,sans-serif;color:#244536;background:#eff2e8;padding:20px;margin:auto;max-width:940px}
+h1{font-size:24px;letter-spacing:-1px}p{color:#6d8070}#summary{padding:16px;border-radius:10px;background:white;border:1px solid #ccdacb;font-weight:700}
+#results{padding:0;list-style:none;display:grid;gap:8px}
+li{border-radius:8px;padding:11px 14px;background:white;border-left:4px solid #b4c8ad}
+li.pass{border-left-color:#4c995f}li.fail{border-left-color:#c05d51}
+.viewport{overflow-x:auto;padding:14px;background:#d7e1d1;border-radius:12px}
+iframe{display:block;height:720px;max-width:none;width:320px;margin:auto;border:1px solid #aabbac;border-radius:9px;background:#dfe9d9}
+a{color:#225b40}
+</style>
+</head><body>
+<h1>Проверка интерфейса Эко-Фермы 3D</h1>
+<p>Проверяем компоновку на ширине 320, 360, 390, 768 и 1024 пикселя. Каждый вариант проходит без изменения обычного сохранения игрока.</p>
+<div id="summary" role="status">Проверяем…</div>
+<ol id="results"></ol>
+<div class="viewport"><iframe id="frame" title="3D-игра в тестовом размере экрана" src="./index.html?qa=1"></iframe></div>
+<p><a href="./">Вернуться к игре</a></p>
+<script>
+(async()=>{
+const f=document.getElementById('frame'),list=document.getElementById('results'),summary=document.getElementById('summary');
+const pause=ms=>new Promise(r=>setTimeout(r,ms));let results=[];
+const report=(name,pass,detail)=>{const li=document.createElement('li');li.className=pass?'pass':'fail';li.textContent=(pass?'✓ ':'✕ ')+name+(detail?' — '+detail:'');list.appendChild(li);results.push(pass)};
+const until=async(fn,ms=22000)=>{const start=Date.now();while(Date.now()-start<ms){try{const result=fn();if(result)return result}catch{}await pause(75)}throw Error('время ожидания истекло')};
+const assert=(c,msg)=>{if(!c)throw Error(msg)};
+try{
+  await until(()=>f.contentDocument?.querySelectorAll('.object-item').length===6 && f.contentWindow.__eco3dDiagnostics,22000);
+  for(const width of [320,360,390,768,1024]){
+    try{
+      f.style.width=width+'px';
+      await pause(350);
+      const d=f.contentDocument,w=f.contentWindow;
+      const body=d.body;
+      assert(Math.abs(w.innerWidth-width)<=3,'ширина окна '+w.innerWidth+' вместо '+width);
+      assert(body.scrollWidth<=width+3,'горизонтальное переполнение '+body.scrollWidth+' > '+width);
+      const settings=d.querySelector('.world-settings').getBoundingClientRect();
+      const camera=d.querySelector('.camera-tools').getBoundingClientRect();
+      const world=d.querySelector('.world').getBoundingClientRect();
+      const controls=[...d.querySelectorAll('#soundToggle,#qualityToggle,.camera-tools button')];
+      assert(controls.length===5,'не все кнопки камеры и настроек');
+      assert(controls.every(e=>{let r=e.getBoundingClientRect();return r.width>=40&&r.height>=40;}),'слишком маленькая область нажатия');
+      assert(settings.right<=world.right+2 && settings.left>=world.left-2,'настройки выходят за пределы 3D-сцены');
+      assert(camera.right<=world.right+2 && camera.left>=world.left-2,'камера выходит за пределы 3D-сцены');
+      assert(!(settings.right>camera.left+4 && settings.left<camera.right-4 &&
+          settings.bottom>camera.top+4 && settings.top<camera.bottom-4),'перекрытие кнопок');
+      const story=d.getElementById('storyPanel');
+      assert(story && d.getElementById('chapterTrack').children.length===7,'панель сюжета пропала');
+      report(width+' px',true,'без горизонтальной прокрутки, кнопки и 7 глав видимы');
+    }catch(e){report(width+' px',false,e.message);}
+  }
+  // Keyboard-accessible alternative: real DOM buttons for item selection and bin choice.
+  try{
+    const d=f.contentDocument;
+    const first=d.querySelector('.object-item');
+    const bin=d.querySelector('[data-bin="paper"]');
+    assert(first?.tagName==='BUTTON' && bin?.tagName==='BUTTON','нет кнопок для клавиатуры');
+    first.click();bin.click();
+    await until(()=>d.getElementById('missionCount').textContent.trim()==='1 / 6',8500);
+    report('Без WebGL-жестов сортировка доступна через кнопки',true,'газета отправлена в бумагу');
+  }catch(e){report('Без WebGL-жестов сортировка доступна через кнопки',false,e.message)}
+}catch(e){report('Загрузка и 3D-инициализация',false,e.message)}
+finally{
+  const passed=results.filter(Boolean).length;
+  summary.textContent='Проверки: '+passed+' / '+results.length+' успешно'+(passed===results.length?' — мобильная компоновка пройдена':' — есть проблемы');
+  summary.style.borderLeft='5px solid '+(passed===results.length?'#499d65':'#bf6656');
+  localStorage.removeItem('ecoFarm3D.stage1.qa');
+  localStorage.removeItem('ecoFarm3D.story.qa');
+  localStorage.removeItem('ecoFarm3D.settings.qa');
+}
+})();
+</script>
+</body></html>
