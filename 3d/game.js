@@ -732,7 +732,7 @@ function tick(){
     }
   }
   polish?.tick(time,dt);
-  artwork?.tick(time,dt,polish?.diagnostics().eco);
+  artwork?.tick(time,dt,polish?.isEconomy());
   renderer.render(scene,camera);
 }
 if(new URLSearchParams(location.search).has('qa')) {
@@ -751,6 +751,8 @@ if(new URLSearchParams(location.search).has('qa')) {
       })),
       rasterSigns,
       groundLayers:{plinthTop:plinth.position.y+.85,grassTop:bed.position.y+.09,pathTop:path1.position.y+.06},
+      render:{calls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,
+        geometries:renderer?.info.memory.geometries||0,textures:renderer?.info.memory.textures||0},
       rendered:!!renderer,
       dpr:renderer?.getPixelRatio()||0
     };
