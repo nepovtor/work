@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="./style.css?v=2">
   <link rel="stylesheet" href="./story.css?v=1">
   <link rel="stylesheet" href="./polish.css?v=2">
-  <link rel="stylesheet" href="./mobile.css?v=1">
+  <link rel="stylesheet" href="./mobile.css?v=2">
   <script>
     window.__ecoErrors = [];
     window.addEventListener('error', function(event) {
@@ -31,7 +31,7 @@
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}
   </script>
-  <script type="module" src="./game.js?v=6"></script>
+  <script type="module" src="./game.js?v=7"></script>
 </head>
 <body>
   <div class="shell" id="app">
@@ -54,7 +54,7 @@
 
     <div class="workspace">
       <aside class="panel">
-        <div class="panel-topline"><span class="eyebrow">ДОБРО ПОЖАЛОВАТЬ</span><span class="day-tag" id="dayTag">ДЕНЬ 01</span></div>
+        <div class="panel-topline"><span class="eyebrow">ТВОЙ ДВОР</span><span class="day-tag" id="dayTag">ДЕНЬ 01</span></div>
         <h1>Вещам есть<br>место<span class="period">.</span></h1>
         <p class="lede">На дорожках остались газета, коробка, банки, бутылка и батарейка. Разберись с находками — и двор станет чище.</p>
 
@@ -133,14 +133,14 @@
         <section id="sceneBinBar" class="scene-bin-bar" aria-label="Куда отнести выбранный предмет?">
           <div class="scene-bin-caption">
             <span class="scene-bin-eye" aria-hidden="true"></span><span>ПУНКТ ПРИЁМА</span>
-            <span class="scene-bin-subtitle">Нажми подходящий контейнер</span>
+            <span class="scene-bin-subtitle" id="sceneBinStatus">Сначала выбери предмет</span>
           </div>
           <div class="scene-bin-scroll" id="sceneBinScroll" role="group" aria-label="Выбор контейнера в трёхмерном дворе">
-            <button type="button" class="scene-bin-chip" data-bin-scene="paper" style="--chip:#b99f6e"><span class="chip-mark" aria-hidden="true">I</span><span>Бумага</span></button>
-            <button type="button" class="scene-bin-chip" data-bin-scene="glass" style="--chip:#638f75"><span class="chip-mark" aria-hidden="true">II</span><span>Стекло</span></button>
-            <button type="button" class="scene-bin-chip" data-bin-scene="plastic" style="--chip:#728da6"><span class="chip-mark" aria-hidden="true">III</span><span>Пластик</span></button>
-            <button type="button" class="scene-bin-chip" data-bin-scene="metal" style="--chip:#969b99"><span class="chip-mark" aria-hidden="true">IV</span><span>Металл</span></button>
-            <button type="button" class="scene-bin-chip" data-bin-scene="special" style="--chip:#c58a6c"><span class="chip-mark" aria-hidden="true">V</span><span>Батарейки</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="paper" style="--chip:#b99f6e"><span class="chip-mark" aria-hidden="true"></span><span>Бумага</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="glass" style="--chip:#638f75"><span class="chip-mark" aria-hidden="true"></span><span>Стекло</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="plastic" style="--chip:#728da6"><span class="chip-mark" aria-hidden="true"></span><span>Пластик</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="metal" style="--chip:#969b99"><span class="chip-mark" aria-hidden="true"></span><span>Металл</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="special" style="--chip:#c58a6c"><span class="chip-mark" aria-hidden="true"></span><span>Батарейки</span></button>
           </div>
         </section>
 
