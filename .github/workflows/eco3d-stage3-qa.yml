@@ -1,0 +1,38 @@
+name: Eco-Farm 3D · Art World QA
+on:
+  push:
+    branches:
+      - feature/eco3d-stage3-authored-world-20261104
+    paths:
+      - '3d/**'
+      - 'ci/eco3d-glass-qa.mjs'
+      - '.github/workflows/eco3d-stage3-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-3d-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 27
+    steps:
+      - name: Checkout authored game
+        uses: actions/checkout@v4
+      - name: Prepare Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser runner
+        run: npm install --no-save --no-package-lock playwright@1.64.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify art, glass, sorting and seven-day storyline
+        run: node ci/eco3d-glass-qa.mjs
+      - name: Attach actual mobile and desktop visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eco3d-stage3-visual-qa
+          path: artifacts/eco3d-ui/
+          if-no-files-found: ignore

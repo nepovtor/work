@@ -23,6 +23,8 @@ async function waitForServer() {
 }
 
 const names = [
+  ['release', 'qa-release.html', 12],
+  ['art', 'qa-art.html', 12],
   ['glass', 'qa-glass.html', 15],
   ['clarity', 'qa-clarity.html', 8],
   ['mobile', 'qa-mobile.html', 16],
@@ -79,6 +81,46 @@ try {
     } finally {
       await context.close();
     }
+  }
+  // Visual evidence and lightweight GPU telemetry. Software WebGL != real iPhone FPS.
+  const views=[
+    ['iphone-se',320,568,2,true,false],
+    ['iphone',390,844,2,true,false],
+    ['iphone-reduced-motion',390,844,2,true,true],
+    ['landscape',844,390,2,true,false],
+    ['desktop',1440,900,1,false,false]
+  ];
+  for(const [name,width,height,scale,mobile,reduced] of views){
+    const ctx=await browser.newContext({
+      viewport:{width,height},deviceScaleFactor:scale,isMobile:mobile,hasTouch:mobile,
+      reducedMotion:reduced?'reduce':'no-preference'
+    });
+    const page=await ctx.newPage();
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    try{
+      await page.goto(base+'index.html?qa=1',{waitUntil:'domcontentloaded',timeout:30000});
+      await page.waitForFunction(()=>window.__eco3dArtAudit?.()&&window.__eco3dDiagnostics?.().rendered,null,{timeout:28000});
+      await page.waitForTimeout(1100);
+      const audit=await page.evaluate(()=>({
+        render:window.__eco3dBinAudit().render,
+        dpr:window.__eco3dDiagnostics().dpr,
+        motion:matchMedia('(prefers-reduced-motion: reduce)').matches,
+        visibleBins:[...document.querySelectorAll('.scene-bin-chip')].filter(e=>{
+          const r=e.getBoundingClientRect(),p=document.getElementById('sceneBinBar').getBoundingClientRect();
+          return r.width>0&&r.height>0&&r.left>=p.left-2&&r.right<=p.right+2;
+        }).length
+      }));
+      if(errors.length)throw Error('Uncaught browser errors: '+errors.slice(0,3).join(' | '));
+      if(mobile&&width<=850&&audit.visibleBins!==5)throw Error('Hidden mobile categories: '+audit.visibleBins+'/5');
+      if(reduced&&!audit.motion)throw Error('Reduced-motion preference ignored');
+      await page.screenshot({path:dir+'/'+name+'-game.png',fullPage:false});
+      console.log('[SCREENSHOT] '+name+' '+width+'x'+height+' DPR '+audit.dpr+
+        ' · draw calls '+audit.render.calls+' · triangles '+audit.render.triangles);
+    }catch(err){
+      failed=true;console.error('[FAIL] screenshot '+name+': '+err.message);
+      try{await page.screenshot({path:dir+'/'+name+'-failure.png'});}catch{}
+    }finally{await ctx.close();}
   }
 } finally {
   if (browser) await browser.close();

@@ -1,0 +1,38 @@
+name: Eco-Farm 3D · Final Release QA
+on:
+  push:
+    branches:
+      - feature/eco3d-stage4-mobile-audit-release-20261104
+    paths:
+      - '3d/**'
+      - 'ci/eco3d-glass-qa.mjs'
+      - '.github/workflows/eco3d-stage4-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    steps:
+      - name: Checkout final game
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser runner
+        run: npm install --no-save --no-package-lock playwright@1.64.1
+      - name: Install Chromium and WebGL dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Full release smoke suite and 5 viewport screenshots
+        run: node ci/eco3d-glass-qa.mjs
+      - name: Save visual release audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eco3d-stage4-release-screenshots
+          path: artifacts/eco3d-ui/
+          if-no-files-found: ignore
