@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="./story.css?v=1">
   <link rel="stylesheet" href="./polish.css?v=2">
   <link rel="stylesheet" href="./mobile.css?v=2">
+  <link rel="stylesheet" href="./glass.css?v=1">
   <script>
     window.__ecoErrors = [];
     window.addEventListener('error', function(event) {
@@ -42,24 +43,24 @@
           <path d="M22 35V15M22 26C12 25 10 18 11 12c8 1 12 6 11 14ZM22 22c1-10 7-13 13-12-1 8-5 13-13 14" stroke="#EAEEC6" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="33" cy="32" r="2" fill="#E9AD7A"/>
         </svg>
-        <span class="brand-text"><strong>эко<span class="brand-light">ферма</span></strong><small>ПРОЕКТ • 3D</small></span>
+        <span class="brand-text"><strong>эко<span class="brand-light">ферма</span></strong></span>
       </a>
       <span class="separator" aria-hidden="true"></span>
       <span class="context-label">Двор № 1 <span class="context-dot">·</span> Семь историй</span>
       <div class="header-right">
-        <span class="build-chip" title="Полная семидневная история"><span class="build-dot"></span> 3D · Полная версия</span>
-        <a class="back-link" href="../classic/" aria-label="Открыть предыдущую версию игры">Старая версия <span aria-hidden="true">↗</span></a>
+        <span class="day-tag" id="dayTag" aria-label="Игровой день">ДЕНЬ 01 / 07</span>
+        <a class="back-link" href="../classic/" aria-label="Открыть классическую версию игры">Классическая версия</a>
       </div>
     </header>
 
     <div class="workspace">
       <aside class="panel">
-        <div class="panel-topline"><span class="eyebrow">ТВОЙ ДВОР</span><span class="day-tag" id="dayTag">ДЕНЬ 01</span></div>
+        <div class="panel-topline"><span class="eyebrow">ПРОГРЕСС</span></div>
         <h1>Вещам есть<br>место<span class="period">.</span></h1>
         <p class="lede">На дорожках остались газета, коробка, банки, бутылка и батарейка. Разберись с находками — и двор станет чище.</p>
 
         <section class="story-shell" id="storyPanel" aria-labelledby="storyTitle" hidden>
-          <div class="story-track-line"><span class="eyebrow">7 ДНЕЙ ВО ДВОРЕ</span><span class="story-budget" id="storyFunds">0 очков помощи</span></div>
+          <div class="story-track-line"><span class="eyebrow">ИСТОРИЯ ДВОРА</span><span class="story-budget" id="storyFunds">0 очков помощи</span></div>
           <div class="story-track" id="chapterTrack" aria-label="Прогресс по семи игровым дням"></div>
           <div class="story-topline"><span class="eyebrow" id="storyKicker">ПЕРВЫЙ ДЕНЬ</span><span class="mission-count" id="storyCounter">0 / 6</span></div>
           <h2 id="storyTitle">Первые находки</h2>
@@ -84,8 +85,8 @@
 
         <section class="inventory" aria-labelledby="inventoryTitle">
           <div class="section-heading heading-items">
-            <span class="eyebrow" id="inventoryTitle">ВЕЩИ ВО ДВОРЕ</span>
-            <span class="hint-small">Выбери одну</span>
+            <span class="eyebrow" id="inventoryTitle">ВЫБЕРИ ПРЕДМЕТ</span>
+            <span class="hint-small" id="itemCountLabel" aria-live="off"></span>
           </div>
           <div class="object-list" id="objectList" role="group" aria-label="Предметы для сортировки"></div>
         </section>
@@ -95,7 +96,7 @@
             <span class="eyebrow" id="dropzoneTitle">КУДА ОТНЕСЁМ?</span>
             <span class="hint-small">5 категорий</span>
           </div>
-          <div id="selectedHint" class="selected-hint" role="status" aria-live="polite">Сначала выбери предмет выше</div>
+          <div id="selectedHint" class="selected-hint" role="status" aria-live="polite">Выбери предмет</div>
           <div class="bin-list" id="binList" role="group" aria-label="Контейнеры для отходов">
             <button type="button" data-bin="paper" class="bin-button"><span class="bin-color paper"></span>Бумага</button>
             <button type="button" data-bin="glass" class="bin-button"><span class="bin-color glass"></span>Стекло</button>
@@ -114,7 +115,7 @@
 
       <main class="world" aria-label="Трёхмерный двор Эко-Фермы">
         <div class="world-top">
-          <div class="world-title"><span class="world-title-mark"></span><div><strong>Маленький двор</strong><small>День за днём здесь становится уютнее</small></div></div>
+          <div class="world-title"><span class="world-title-mark"></span><div><strong>Двор</strong></div></div>
           <div class="world-settings" role="group" aria-label="Настройки отображения и звука">
             <button id="soundToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить звуковые эффекты">Звук выкл</button>
             <button id="qualityToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить экономный режим отображения">Графика</button>
@@ -132,8 +133,8 @@
 
         <section id="sceneBinBar" class="scene-bin-bar" aria-label="Куда отнести выбранный предмет?">
           <div class="scene-bin-caption">
-            <span class="scene-bin-eye" aria-hidden="true"></span><span>ПУНКТ ПРИЁМА</span>
-            <span class="scene-bin-subtitle" id="sceneBinStatus">Сначала выбери предмет</span>
+            <span class="scene-bin-eye" aria-hidden="true"></span><span id="sceneBinTitle">КОНТЕЙНЕРЫ</span>
+            <span class="scene-bin-subtitle" id="sceneBinStatus">Выбери предмет</span>
           </div>
           <div class="scene-bin-scroll" id="sceneBinScroll" role="group" aria-label="Выбор контейнера в трёхмерном дворе">
             <button type="button" class="scene-bin-chip" data-bin-scene="paper" style="--chip:#b99f6e"><span class="chip-mark" aria-hidden="true"></span><span>Бумага</span></button>
