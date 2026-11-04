@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createStory } from './story.js';
+import { createPolish } from './polish.js';
 
 /**
  * Эко-Ферма 3D — первый игровой фрагмент.
@@ -53,6 +54,7 @@ const state = {
   hasCompleted: !!persisted.hasCompleted
 };
 let story = null;
+let polish = null;
 function localDate(date=new Date()){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
 function dayNumber(){
   const a=new Date(state.startedAt+'T12:00:00');
@@ -441,6 +443,7 @@ function attemptSort(binId) {
   const item=items.find(x=>x.id===state.selected);
   if(!item)return;
   if(item.type!==binId){
+    polish?.sound('error');
     showNote('ПОПРОБУЙ ЕЩЁ',item.notThis);
     els.factText.textContent='Подсказка: '+item.notThis;
     els.binList.querySelectorAll('button').forEach(x=>x.classList.remove('is-target'));
@@ -466,6 +469,7 @@ function sortFinished(id,lesson){
   selectionRing.visible=false;
   if(state.sorted.size>=3){restoration.visible=true;garden.visible=true}
   save();refreshHUD();
+  polish?.sound('correct');
   showNote('УДАЧНО ОТСОРТИРОВАНО',lesson);
   els.factText.textContent=lesson;
   announce('Хорошо! '+items.find(x=>x.id===id).name+' отправлена в подходящий сбор.');
@@ -559,7 +563,7 @@ function tick(){
   }
   if(sortTween){
     const t=sortTween;
-    t.t=Math.min(1,t.t+dt*2.0);
+    t.t=reducedMotion?1:Math.min(1,t.t+dt*2.0);
     const eased=t.t*t.t*(3-2*t.t);
     t.group.position.lerpVectors(t.start,t.finish,eased);
     t.group.position.y+=Math.sin(Math.PI*t.t)*.035;
@@ -572,9 +576,12 @@ function tick(){
       sortFinished(id,lesson);
     }
   }
+  polish?.tick(time,dt);
   renderer.render(scene,camera);
 }
-story = createStory({THREE,scene,mat,M,group,box,cylinder,sphere,bench,addMesh,state,itemGroups,allPickables,showNote,announce});
+polish = createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root:els.renderHost,resize});
+story = createStory({THREE,scene,mat,M,group,box,cylinder,sphere,bench,addMesh,state,itemGroups,allPickables,showNote,announce,
+  createCharacter:polish.createCharacter,sound:polish.sound,setChapter:polish.setChapter});
 refreshHUD();
 story.render();
 const hour=new Date().getHours();els.sunLabel.textContent=hour<6?'Ночь':hour<12?'Тихое утро':hour<18?'День во дворе':'Вечер во дворе';
