@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eae6d7">
-  <meta name="description" content="Эко-Ферма 3D: уютный двор и небольшие действия, которые меняют мир. Интерактивный прототип сортировки отходов.">
-  <title>Эко-Ферма 3D — Двор № 1</title>
+  <meta name="description" content="Эко-Ферма 3D: уютный двор и небольшие действия, которые меняют мир. Семь игровых глав о полезных привычках, макулатуре и преображении двора.">
+  <title>Эко-Ферма 3D — Семь историй одного двора</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css?v=2">
+  <link rel="stylesheet" href="./story.css?v=1">
+  <link rel="stylesheet" href="./polish.css?v=2">
   <script>
     window.__ecoErrors = [];
     window.addEventListener('error', function(event) {
@@ -26,12 +28,12 @@
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}
   </script>
-  <script type="module" src="./game.js?v=2"></script>
+  <script type="module" src="./game.js?v=5"></script>
 </head>
 <body>
   <div class="shell" id="app">
     <header class="masthead">
-      <a class="wordmark" href="../../" aria-label="Открыть основную версию Эко-Фермы">
+      <a class="wordmark" href="../classic/" aria-label="Открыть основную версию Эко-Фермы">
         <svg class="mark" viewBox="0 0 44 44" fill="none" aria-hidden="true">
           <rect width="44" height="44" rx="13" fill="#234838"/>
           <path d="M22 35V15M22 26C12 25 10 18 11 12c8 1 12 6 11 14ZM22 22c1-10 7-13 13-12-1 8-5 13-13 14" stroke="#EAEEC6" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -40,10 +42,10 @@
         <span class="brand-text"><strong>эко<span class="brand-light">ферма</span></strong><small>ПРОЕКТ • 3D</small></span>
       </a>
       <span class="separator" aria-hidden="true"></span>
-      <span class="context-label">Двор № 1 <span class="context-dot">·</span> Первый взгляд</span>
+      <span class="context-label">Двор № 1 <span class="context-dot">·</span> Семь историй</span>
       <div class="header-right">
-        <span class="build-chip" title="Первый этап разработки"><span class="build-dot"></span> Прототип 01</span>
-        <a class="back-link" href="../../" aria-label="Открыть предыдущую версию игры">Старая версия <span aria-hidden="true">↗</span></a>
+        <span class="build-chip" title="Полная семидневная история"><span class="build-dot"></span> 3D · Полная версия</span>
+        <a class="back-link" href="../classic/" aria-label="Открыть предыдущую версию игры">Старая версия <span aria-hidden="true">↗</span></a>
       </div>
     </header>
 
@@ -53,6 +55,18 @@
         <h1>Вещам есть<br>место<span class="period">.</span></h1>
         <p class="lede">На дорожках остались газета, коробка, банки, бутылка и батарейка. Разберись с находками — и двор станет чище.</p>
 
+        <section class="story-shell" id="storyPanel" aria-labelledby="storyTitle" hidden>
+          <div class="story-track-line"><span class="eyebrow">7 ДНЕЙ ВО ДВОРЕ</span><span class="story-budget" id="storyFunds">0 очков помощи</span></div>
+          <div class="story-track" id="chapterTrack" aria-label="Прогресс по семи игровым дням"></div>
+          <div class="story-topline"><span class="eyebrow" id="storyKicker">ПЕРВЫЙ ДЕНЬ</span><span class="mission-count" id="storyCounter">0 / 6</span></div>
+          <h2 id="storyTitle">Первые находки</h2>
+          <strong class="story-sub" id="storySub"></strong>
+          <p id="storyText"></p>
+          <div class="story-progress-track"><span id="storyProgress"></span></div>
+          <div class="story-actions" id="storyActions"></div>
+        </section>
+
+        <div id="stage1Wrap">
         <section class="mission" aria-labelledby="missionTitle">
           <div class="section-heading">
             <span class="eyebrow">ПЕРВОЕ ДЕЛО</span>
@@ -87,15 +101,20 @@
           </div>
         </section>
 
+        </div><!-- stage1Wrap -->
         <div class="panel-bottom">
           <button id="restart" type="button" class="restart">↺ <span>Начать сначала</span></button>
-          <span class="save-label">Прогресс сохранён на этом устройстве</span>
+          <span class="save-label">История сохраняется на этом устройстве</span>
         </div>
       </aside>
 
       <main class="world" aria-label="Трёхмерный двор Эко-Фермы">
         <div class="world-top">
-          <div class="world-title"><span class="world-title-mark"></span><div><strong>Маленький двор</strong><small>Место, которое можно изменить</small></div></div>
+          <div class="world-title"><span class="world-title-mark"></span><div><strong>Маленький двор</strong><small>День за днём здесь становится уютнее</small></div></div>
+          <div class="world-settings" role="group" aria-label="Настройки отображения и звука">
+            <button id="soundToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить звуковые эффекты">Звук выкл</button>
+            <button id="qualityToggle" type="button" class="hud-option" aria-pressed="false" aria-label="Включить экономный режим отображения">Графика</button>
+          </div>
           <div class="camera-tools" role="group" aria-label="Управление камерой">
             <button type="button" id="cameraLeft" aria-label="Повернуть камеру влево" title="Повернуть влево">↶</button>
             <button type="button" id="cameraRight" aria-label="Повернуть камеру вправо" title="Повернуть вправо">↷</button>
@@ -108,7 +127,7 @@
         </div>
 
         <div class="world-footer">
-          <div class="scene-hint"><span class="gesture-icon" aria-hidden="true">↗</span><span>Нажимай на предметы <span class="hint-divider">·</span> Потяни фон, чтобы повернуть двор</span></div>
+          <div class="scene-hint"><span class="gesture-icon" aria-hidden="true">↗</span><span>Выбирай вещи и объекты в 3D <span class="hint-divider">·</span> Поверни двор жестом</span></div>
           <div class="world-foot-right"><span id="sunLabel">Тихое утро</span><span class="foot-dot"></span><span>3D-сцена</span></div>
         </div>
 
@@ -150,7 +169,7 @@
           <div><strong>На заметку</strong><p id="factText">Правила сортировки могут отличаться в разных городах. Перед сдачей сверяйся с правилами своего пункта приёма.</p></div>
         </div>
         <div class="right-spacer"></div>
-        <div class="chapter-footer"><span>ЭТАП 1 / 3</span><strong>Один двор.<br>Шесть решений.</strong></div>
+        <div class="chapter-footer"><span>ЭТАП 2 / 3</span><strong id="storySummary">История продолжается</strong></div>
       </aside>
     </div>
   </div>
