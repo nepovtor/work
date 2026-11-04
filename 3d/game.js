@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createStory } from './story.js';
-import { createPolish } from './polish.js';
+import { createPolish } from './polish.js?v=2';
 
 /**
  * Эко-Ферма 3D — первый игровой фрагмент.
