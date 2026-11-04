@@ -10,6 +10,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css?v=2">
+  <script>
+    window.__ecoErrors = [];
+    window.addEventListener('error', function(event) {
+      var message = event.message || (event.target && event.target.src ? 'Не загружен ресурс: '+event.target.src : 'Неизвестная ошибка');
+      window.__ecoErrors.push(message);
+      var loading = document.getElementById('loading');
+      if(loading) loading.textContent = 'Не удалось запустить 3D-сцену. Попробуй перезагрузить страницу.';
+    }, true);
+    window.addEventListener('unhandledrejection', function(event) {
+      var reason = event.reason;
+      window.__ecoErrors.push(String(reason && reason.stack || reason || 'Ошибка модуля'));
+    });
+  </script>
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}
   </script>
