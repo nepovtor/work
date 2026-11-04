@@ -37,6 +37,16 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
     const pixelRatio=Math.max(1,Math.min(nativeRatio,eco?1.5:2.0,Math.sqrt(pixelBudget/(w*h))));
     if(Math.abs(renderer.getPixelRatio()-pixelRatio)>.025)renderer.setPixelRatio(pixelRatio);
   }
+  function hudIcon(name){
+    const common='width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+    const paths={
+      sound:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/>',
+      mute:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6m0-6-5 6"/>',
+      quality:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17Z"/>',
+      eco:'<path d="M4 16c7 0 13-3 16-12 1 10-2 16-10 16-3 0-5-1-6-4Z"/><path d="M4 21c3-6 7-10 13-13"/>'
+    };
+    return '<svg '+common+' aria-hidden="true">'+(paths[name]||paths.quality)+'</svg>';
+  }
   function quality(flag){
     eco=!!flag;
     if(renderer){
@@ -57,7 +67,7 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
       btn.setAttribute('aria-pressed',String(eco));
       btn.setAttribute('aria-label',eco?'Экономный режим включён. Вернуть высокое качество.':'Включить экономный режим отображения');
       btn.title=eco?'Включить полное качество':'Экономный режим: меньше теней и анимаций';
-      btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+(eco?'◔':'▧')+'</span><span>'+(eco?'Экономный':'Графика')+'</span>';
+      btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+hudIcon(eco?'eco':'quality')+'</span><span>'+(eco?'Экономный':'Графика')+'</span>';
     }
   }
   // Environmental lighting responds to story chapters, not a punishing real-time clock.
@@ -271,7 +281,7 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
     btn.setAttribute('aria-pressed',String(audioOn));
     btn.setAttribute('aria-label',audioOn?'Выключить звуковые эффекты':'Включить звуковые эффекты');
     btn.title=audioOn?'Выключить звуки':'Включить звуки (без музыки)';
-    btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+(audioOn?'◖':'◌')+'</span><span>'+(audioOn?'Звук вкл':'Звук выкл')+'</span>';
+    btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+hudIcon(audioOn?'sound':'mute')+'</span><span>'+(audioOn?'Звук вкл':'Звук выкл')+'</span>';
   }
   function initControls(){
     const soundBtn=document.getElementById('soundToggle');
