@@ -41,7 +41,7 @@ const locations = {
   jar:[1.5, 5.8],can:[5, 4.8],battery:[8.1, 2.9]
 };
 const els = {};
-for(const id of ['renderHost','loading','objectList','binList','progress','progressFill','missionCount','countSorted','countPaper','toast','learningNote','noteText','noteEyebrow','noteNext','closeNote','factText','complete','explore','again','restart','dayTag','cameraLeft','cameraRight','cameraReset','sunLabel']) {
+for(const id of ['renderHost','loading','objectList','binList','progress','progressFill','missionCount','countSorted','countPaper','toast','learningNote','noteText','noteEyebrow','noteNext','closeNote','factText','complete','explore','again','restart','dayTag','cameraLeft','cameraRight','cameraReset','sunLabel','sceneBinBar','sceneBinScroll','selectedHint','sceneBinStatus']) {
   els[id] = document.getElementById(id);
 }
 const persisted = (()=>{try{const value=JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');return value && typeof value==='object'?value:{}}catch{return {}}})();
@@ -55,6 +55,7 @@ const state = {
 };
 let story = null;
 let polish = null;
+let activeChapter = 1;
 function localDate(date=new Date()){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
 function dayNumber(){
   const a=new Date(state.startedAt+'T12:00:00');
@@ -100,8 +101,24 @@ function refreshHUD(){
   els.countSorted.textContent=count+' '+(count===1?'вещь':count>=2&&count<=4?'вещи':'вещей');
   const countPaper=items.filter(x=>x.paper&&state.sorted.has(x.id)).length;
   els.countPaper.textContent=countPaper+' '+(countPaper===1?'бумажный предмет':countPaper>=2&&countPaper<=4?'бумажных предмета':'бумажных предметов');
-  els.dayTag.textContent='ДЕНЬ '+String(dayNumber()).padStart(2,'0');
-  els.binList.querySelectorAll('button').forEach(btn=>btn.disabled=state.sorting||count===items.length);
+  els.dayTag.textContent='ДЕНЬ '+String(activeChapter).padStart(2,'0')+' / 07';
+  const inactive=state.sorting||count===items.length||activeChapter!==1;
+  els.binList.querySelectorAll('button').forEach(btn=>btn.disabled=inactive);
+  if(els.sceneBinBar){
+    els.sceneBinBar.hidden=activeChapter!==1||count===items.length;
+    els.sceneBinBar.querySelectorAll('button').forEach(btn=>btn.disabled=inactive);
+  }
+  const selected=items.find(x=>x.id===state.selected);
+  if(els.sceneBinStatus){
+    els.sceneBinStatus.textContent=selected
+      ?selected.name+' · куда отнести?':'Сначала выбери предмет';
+  }
+  if(els.selectedHint){
+    els.selectedHint.classList.toggle('has-selection',!!selected);
+    els.selectedHint.textContent=selected
+      ?'Выбрано: '+selected.name+'. Теперь нажми подходящий контейнер.'
+      :count===items.length?'Все шесть находок разобраны.':'Сначала выбери предмет выше или в 3D-дворе.';
+  }
   renderInventory();
 }
 const scene=new THREE.Scene();
@@ -109,11 +126,13 @@ scene.background=new THREE.Color('#dce7da');
 scene.fog=new THREE.Fog('#dce7da',43,88);
 const camera=new THREE.OrthographicCamera(-18,18,17,-17,.1,120);
 let azimuth=Math.PI/4.6;
+let cameraZoom=1;
 const cameraTarget=new THREE.Vector3(0,0.2,.2);
 const cameraRadius=36;
 function setCamera() {
   camera.position.set(Math.sin(azimuth)*cameraRadius,25,Math.cos(azimuth)*cameraRadius);
   camera.lookAt(cameraTarget);
+  camera.zoom=cameraZoom;
   camera.updateProjectionMatrix();
 }
 const renderer = (()=>{
@@ -181,8 +200,31 @@ function textureText(text,{bg='#ffffff',fg='#365244',size=58,weight=800,width=56
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=2;return tex;
 }
 function planeLabel(parent,text,width=.9,height=.31,y=1.1,z=.55,bg='#f3ebdc',fg='#253e34'){
-  const mesh=addMesh(parent,new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({map:textureText(text,{bg,fg,size:40}),side:THREE.DoubleSide}),0,y,z,false);
-  return mesh;
+  const texture=textureText(text,{bg,fg,size:112,width:780,height:220});
+  return addMesh(parent,new THREE.PlaneGeometry(width,height),
+    new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false}),0,y,z,false);
+}
+function binPlacard(text){
+  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=228;
+  const ctx=canvas.getContext('2d');
+  // Square fallback supports older iOS Safari, where Canvas2D.roundRect is absent.
+  function plaque(x,y,w,h,r,color){
+    ctx.fillStyle=color;ctx.beginPath();
+    if(typeof ctx.roundRect==='function')ctx.roundRect(x,y,w,h,r);
+    else ctx.rect(x,y,w,h);
+    ctx.fill();
+  }
+  plaque(4,4,760,220,34,'#214535');
+  plaque(12,12,744,204,27,'#fffdf0');
+  ctx.fillStyle='#1f3c2e';ctx.font='900 94px Manrope,system-ui,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  const measured=ctx.measureText(text).width;
+  if(measured>670)ctx.font='900 '+Math.floor(94*670/measured)+'px Manrope,system-ui,sans-serif';
+  ctx.fillText(text,384,119);
+  const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;
+  const material=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false,toneMapped:false});
+  const sprite=new THREE.Sprite(material);sprite.scale.set(2.02,.65,1);sprite.renderOrder=25;
+  return sprite;
 }
 // A real solid diorama, not an image or a CSS mockup.
 function roundedPlatform(w,d,r=.7) {
@@ -334,7 +376,9 @@ function createBin(spec){
   box(b,1.51,.18,1.35,M(spec.color,.55),0,1.61,0);
   box(b,.93,.1,.12,mat.charcoal,0,1.67,.56);
   box(b,1.24,.62,.055,mat.cream,0,1.04,.652);
-  planeLabel(b,spec.label,1.23,.47,1.04,.688,'#f7f0e1','#354b3a');
+  planeLabel(b,spec.label,1.23,.5,1.04,.689,'#fffdf2','#1e3e2b');
+  const placard=binPlacard(spec.id==='special'?'ОСОБЫЙ СБОР':spec.label);
+  placard.position.set(0,2.27,.10);b.add(placard);
   for(const s of [-1,1])cylinder(b,.145,.145,.11,mat.charcoal,s*.49,.12,.45,12).rotation.z=Math.PI/2;
   const h=box(b,.34,.14,.14,M(spec.color),0,1.52,-.69);
   h.rotation.x=.25;
@@ -432,6 +476,8 @@ function selectItem(id) {
   state.selected=id;hideNote();
   const g=itemGroups.get(id);
   if(g){selectionRing.position.x=g.position.x;selectionRing.position.z=g.position.z;selectionRing.visible=true}
+  els.binList.querySelectorAll('button').forEach(b=>b.classList.remove('is-target'));
+  els.sceneBinBar?.querySelectorAll('button').forEach(b=>b.classList.remove('is-target'));
   refreshHUD();
   announce('Выбрано: '+items.find(x=>x.id===id).name+'. Укажи контейнер.');
 }
@@ -449,10 +495,13 @@ function attemptSort(binId) {
     els.binList.querySelectorAll('button').forEach(x=>x.classList.remove('is-target'));
     const target=els.binList.querySelector('[data-bin="'+item.type+'"]');
     if(target)target.classList.add('is-target');
+    const sceneTarget=els.sceneBinBar?.querySelector('[data-bin-scene="'+item.type+'"]');
+    if(sceneTarget)sceneTarget.classList.add('is-target');
     return;
   }
   hideNote();
   els.binList.querySelectorAll('button').forEach(x=>x.classList.remove('is-target'));
+  els.sceneBinBar?.querySelectorAll('button').forEach(x=>x.classList.remove('is-target'));
   const group=itemGroups.get(item.id);
   const bin=binGroups.get(binId);
   state.sorting=true;
@@ -472,7 +521,7 @@ function sortFinished(id,lesson){
   polish?.sound('correct');
   showNote('УДАЧНО ОТСОРТИРОВАНО',lesson);
   els.factText.textContent=lesson;
-  announce('Хорошо! '+items.find(x=>x.id===id).name+' отправлена в подходящий сбор.');
+  announce('Отлично: '+items.find(x=>x.id===id).name+'. Материал отсортирован.');
   if(state.sorted.size===items.length&&!state.hasCompleted){
     state.hasCompleted=true;save();
     if(story)story.onFirstDayComplete();
@@ -482,12 +531,17 @@ function sortFinished(id,lesson){
   }
 }
 els.binList.querySelectorAll('[data-bin]').forEach(b=>b.addEventListener('click',()=>attemptSort(b.dataset.bin)));
+els.sceneBinBar?.querySelectorAll('[data-bin-scene]').forEach(b=>{
+  b.addEventListener('click',()=>attemptSort(b.dataset.binScene));
+});
 els.restart.addEventListener('click',()=>resetGame());
 els.again.addEventListener('click',()=>resetGame());
 els.explore.addEventListener('click',()=>{els.complete.hidden=true;hideNote()});
 function resetGame(){
   state.sorted.clear();state.selected=null;state.sorting=false;state.hasCompleted=false;sortTween=null;
   els.complete.hidden=true;hideNote();selectionRing.visible=false;
+  els.sceneBinBar?.querySelectorAll('button').forEach(b=>b.classList.remove('is-target'));
+  els.binList.querySelectorAll('button').forEach(b=>b.classList.remove('is-target'));
   items.forEach(i=>{const g=itemGroups.get(i.id);if(g){g.position.set(...[locations[i.id][0],.77,locations[i.id][1]]);g.scale.setScalar(1);g.visible=true;}});
   restoration.visible=false;garden.visible=false;
   save();refreshHUD();
@@ -496,7 +550,7 @@ function resetGame(){
 }
 els.cameraLeft.addEventListener('click',()=>{azimuth-=Math.PI/9;setCamera()});
 els.cameraRight.addEventListener('click',()=>{azimuth+=Math.PI/9;setCamera()});
-els.cameraReset.addEventListener('click',()=>{azimuth=Math.PI/4.6;setCamera()});
+els.cameraReset.addEventListener('click',()=>{azimuth=Math.PI/4.6;cameraZoom=1;setCamera()});
 
 const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
 function pickAt(clientX,clientY){
@@ -504,8 +558,11 @@ function pickAt(clientX,clientY){
   pointer.set(((clientX-rect.left)/rect.width)*2-1,-((clientY-rect.top)/rect.height)*2+1);
   raycaster.setFromCamera(pointer,camera);
   const hits=raycaster.intersectObjects(allPickables,false);
-  for (const hit of hits){
+  for(const hit of hits){
     const obj=hit.object;
+    let node=obj,visible=true;
+    while(node){if(!node.visible){visible=false;break}node=node.parent}
+    if(!visible)continue;
     if(obj.userData.storyAction && story){story.interact(obj.userData.storyAction);return}
     if(obj.userData.itemId && !state.sorted.has(obj.userData.itemId)){selectItem(obj.userData.itemId);return}
     if(obj.userData.binId){attemptSort(obj.userData.binId);return}
@@ -514,36 +571,79 @@ function pickAt(clientX,clientY){
 let dragging=false,startPointer=null,dragStartAngle=azimuth;
 if(renderer){
   const canvas=renderer.domElement;
+  const touches=new Map();
+  let pinchStartDistance=0,pinchStartZoom=1,pinching=false;
+  const distance=()=>{
+    const [a,b]=[...touches.values()];
+    return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0;
+  };
   canvas.addEventListener('pointerdown',(e)=>{
-    if(e.button!==0&&e.pointerType==='mouse')return;
-    dragging=false;startPointer={x:e.clientX,y:e.clientY};dragStartAngle=azimuth;
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     canvas.setPointerCapture(e.pointerId);
+    if(touches.size>=2){
+      pinching=true;dragging=true;startPointer=null;
+      pinchStartDistance=Math.max(1,distance());pinchStartZoom=cameraZoom;
+    }else{
+      dragging=false;startPointer={x:e.clientX,y:e.clientY};dragStartAngle=azimuth;
+    }
   });
   canvas.addEventListener('pointermove',(e)=>{
+    if(!touches.has(e.pointerId))return;
+    touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(touches.size>=2){
+      if(!pinching){
+        pinching=true;dragging=true;pinchStartDistance=Math.max(1,distance());pinchStartZoom=cameraZoom;
+      }
+      cameraZoom=THREE.MathUtils.clamp(pinchStartZoom*distance()/pinchStartDistance,.8,1.85);
+      setCamera();
+      return;
+    }
     if(!startPointer)return;
-    const deltaX=e.clientX-startPointer.x,deltaY=e.clientY-startPointer.y;
-    if(Math.hypot(deltaX,deltaY)>7)dragging=true;
-    if(dragging){azimuth=dragStartAngle-deltaX*.007;setCamera()}
+    const dx=e.clientX-startPointer.x,dy=e.clientY-startPointer.y;
+    if(Math.hypot(dx,dy)>8)dragging=true;
+    if(dragging){azimuth=dragStartAngle-dx*.007;setCamera()}
   });
   canvas.addEventListener('pointerup',(e)=>{
-    if(!startPointer)return;
-    if(!dragging)pickAt(e.clientX,e.clientY);
-    startPointer=null;dragging=false;
+    if(!touches.has(e.pointerId))return;
+    const tapped=!pinching&&!dragging&&touches.size===1;
+    touches.delete(e.pointerId);
     if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
+    if(tapped)pickAt(e.clientX,e.clientY);
+    if(touches.size===1){
+      const other=[...touches.values()][0];
+      startPointer={x:other.x,y:other.y};dragStartAngle=azimuth;
+      dragging=true;pinching=false;
+    }else if(!touches.size){
+      startPointer=null;dragging=false;pinching=false;pinchStartDistance=0;
+    }
   });
-  canvas.addEventListener('pointercancel',()=>{startPointer=null;dragging=false});
+  canvas.addEventListener('pointercancel',(e)=>{
+    touches.delete(e.pointerId);startPointer=null;dragging=false;pinching=false;
+  });
+  canvas.addEventListener('wheel',(e)=>{
+    e.preventDefault();
+    cameraZoom=THREE.MathUtils.clamp(cameraZoom*(e.deltaY>0?.94:1.06),.8,1.85);
+    setCamera();
+  },{passive:false});
   canvas.addEventListener('keydown',(e)=>{
-    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();azimuth+=(e.key==='ArrowLeft'?-1:1)*.12;setCamera()}
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+      e.preventDefault();azimuth+=(e.key==='ArrowLeft'?-1:1)*.12;setCamera();
+    }else if(e.key==='+'||e.key==='='){
+      e.preventDefault();cameraZoom=Math.min(1.85,cameraZoom*1.12);setCamera();
+    }else if(e.key==='-'){
+      e.preventDefault();cameraZoom=Math.max(.8,cameraZoom/1.12);setCamera();
+    }
   });
 }
 function resize(){
   if(!renderer)return;
   const w=Math.max(1,els.renderHost.clientWidth),h=Math.max(1,els.renderHost.clientHeight);
   const aspect=w/h;
-  const viewWidth=aspect<1.15?31.3:Math.min(38,27+4*aspect);
+  const viewWidth=aspect<1.15?(w<650?29.2:31.3):Math.min(38,27+4*aspect);
   const viewHeight=viewWidth/aspect;
   camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=viewHeight/2;camera.bottom=-viewHeight/2;
-  camera.updateProjectionMatrix();renderer.setSize(w,h,false);
+  camera.zoom=cameraZoom;camera.updateProjectionMatrix();renderer.setSize(w,h,false);
 }
 const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
 if(observer)observer.observe(els.renderHost);
@@ -581,7 +681,12 @@ function tick(){
 }
 polish = createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root:els.renderHost,resize});
 story = createStory({THREE,scene,mat,M,group,box,cylinder,sphere,bench,addMesh,state,itemGroups,allPickables,showNote,announce,
-  createCharacter:polish.createCharacter,sound:polish.sound,setChapter:polish.setChapter});
+  createCharacter:polish.createCharacter,sound:polish.sound,setChapter:polish.setChapter,
+  onChapterChange:(day)=>{
+    activeChapter=day;
+    document.querySelector('.world')?.setAttribute('data-game-chapter',String(day));
+    refreshHUD();
+  }});
 refreshHUD();
 story.render();
 const hour=new Date().getHours();els.sunLabel.textContent=hour<6?'Ночь':hour<12?'Тихое утро':hour<18?'День во дворе':'Вечер во дворе';

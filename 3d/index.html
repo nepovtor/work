@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#eae6d7">
+  <meta name="theme-color" content="#f8f6ed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="Эко-Ферма 3D: уютный двор и небольшие действия, которые меняют мир. Семь игровых глав о полезных привычках, макулатуре и преображении двора.">
   <title>Эко-Ферма 3D — Семь историй одного двора</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,6 +14,7 @@
   <link rel="stylesheet" href="./style.css?v=2">
   <link rel="stylesheet" href="./story.css?v=1">
   <link rel="stylesheet" href="./polish.css?v=2">
+  <link rel="stylesheet" href="./mobile.css?v=2">
   <script>
     window.__ecoErrors = [];
     window.addEventListener('error', function(event) {
@@ -28,7 +31,7 @@
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}
   </script>
-  <script type="module" src="./game.js?v=5"></script>
+  <script type="module" src="./game.js?v=7"></script>
 </head>
 <body>
   <div class="shell" id="app">
@@ -51,7 +54,7 @@
 
     <div class="workspace">
       <aside class="panel">
-        <div class="panel-topline"><span class="eyebrow">ДОБРО ПОЖАЛОВАТЬ</span><span class="day-tag" id="dayTag">ДЕНЬ 01</span></div>
+        <div class="panel-topline"><span class="eyebrow">ТВОЙ ДВОР</span><span class="day-tag" id="dayTag">ДЕНЬ 01</span></div>
         <h1>Вещам есть<br>место<span class="period">.</span></h1>
         <p class="lede">На дорожках остались газета, коробка, банки, бутылка и батарейка. Разберись с находками — и двор станет чище.</p>
 
@@ -92,6 +95,7 @@
             <span class="eyebrow" id="dropzoneTitle">КУДА ОТНЕСЁМ?</span>
             <span class="hint-small">5 категорий</span>
           </div>
+          <div id="selectedHint" class="selected-hint" role="status" aria-live="polite">Сначала выбери предмет выше</div>
           <div class="bin-list" id="binList" role="group" aria-label="Контейнеры для отходов">
             <button type="button" data-bin="paper" class="bin-button"><span class="bin-color paper"></span>Бумага</button>
             <button type="button" data-bin="glass" class="bin-button"><span class="bin-color glass"></span>Стекло</button>
@@ -125,6 +129,20 @@
         <div id="renderHost" class="render-host" aria-label="Интерактивный 3D-двор">
           <div id="loading" class="loading" role="status"><span class="loading-ring"></span><span>Создаём двор…</span></div>
         </div>
+
+        <section id="sceneBinBar" class="scene-bin-bar" aria-label="Куда отнести выбранный предмет?">
+          <div class="scene-bin-caption">
+            <span class="scene-bin-eye" aria-hidden="true"></span><span>ПУНКТ ПРИЁМА</span>
+            <span class="scene-bin-subtitle" id="sceneBinStatus">Сначала выбери предмет</span>
+          </div>
+          <div class="scene-bin-scroll" id="sceneBinScroll" role="group" aria-label="Выбор контейнера в трёхмерном дворе">
+            <button type="button" class="scene-bin-chip" data-bin-scene="paper" style="--chip:#b99f6e"><span class="chip-mark" aria-hidden="true"></span><span>Бумага</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="glass" style="--chip:#638f75"><span class="chip-mark" aria-hidden="true"></span><span>Стекло</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="plastic" style="--chip:#728da6"><span class="chip-mark" aria-hidden="true"></span><span>Пластик</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="metal" style="--chip:#969b99"><span class="chip-mark" aria-hidden="true"></span><span>Металл</span></button>
+            <button type="button" class="scene-bin-chip" data-bin-scene="special" style="--chip:#c58a6c"><span class="chip-mark" aria-hidden="true"></span><span>Батарейки</span></button>
+          </div>
+        </section>
 
         <div class="world-footer">
           <div class="scene-hint"><span class="gesture-icon" aria-hidden="true">↗</span><span>Выбирай вещи и объекты в 3D <span class="hint-divider">·</span> Поверни двор жестом</span></div>
@@ -169,7 +187,7 @@
           <div><strong>На заметку</strong><p id="factText">Правила сортировки могут отличаться в разных городах. Перед сдачей сверяйся с правилами своего пункта приёма.</p></div>
         </div>
         <div class="right-spacer"></div>
-        <div class="chapter-footer"><span>ЭТАП 2 / 3</span><strong id="storySummary">История продолжается</strong></div>
+        <div class="chapter-footer"><span>ЭКО-ФЕРМА / 3D</span><strong id="storySummary">История продолжается</strong></div>
       </aside>
     </div>
   </div>
