@@ -327,7 +327,8 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
   }
   const diagnostics=()=>{
     return {stage:3,eco,quality:eco?'economy':'full',soundEnabled:audioOn,
-      actors:actors.length,birds:birds.length,leaves:leafActors.length,
+      actors:actors.length,activeActors:actors.filter(x=>x.visible).length,invitedActors:actors.filter(x=>x.userData.isInvited).length,
+      birds:birds.length,leaves:leafActors.length,
       chapter:selectedSky,rendered:!!renderer};
   };
   // Read-only, predictable telemetry for the shipped QA page.
