@@ -5,7 +5,8 @@
  */
 export function createStory(ctx) {
   const { THREE, scene, mat, M, group, box, cylinder, sphere, bench,
-    addMesh, state: intro, itemGroups, allPickables, showNote, announce } = ctx;
+    addMesh, state: intro, itemGroups, allPickables, showNote, announce,
+    createCharacter, sound, setChapter } = ctx;
   const isQA = new URLSearchParams(location.search).has('qa');
   const KEY = isQA ? 'ecoFarm3D.story.qa' : 'ecoFarm3D.story.v1';
   const DAYS = [
@@ -250,7 +251,7 @@ export function createStory(ctx) {
   const party=bunting();
   const neighborVisuals=new Map();
   NEIGHBORS.forEach((p,i)=>{
-    const g=neighbor(...p.position,['#b17b60','#617b83','#879766'][i]);
+    const g=createCharacter ? createCharacter(...p.position,i) : neighbor(...p.position,['#b17b60','#617b83','#879766'][i]);
     clickable(g,'invite:'+p.id);neighborVisuals.set(p.id,g);
   });
   function syncWorld(){
@@ -263,7 +264,17 @@ export function createStory(ctx) {
     stationSign.visible=d>=4;
     library.visible=d>=6;
     party.visible=d===7&&data.invited.length===3;
-    neighborVisuals.forEach((g,id)=>{g.visible=d===7&&!data.invited.includes(id)});
+    neighborVisuals.forEach((g,id)=>{
+      g.visible=d===7;
+      const i=NEIGHBORS.findIndex(p=>p.id===id);
+      const p=NEIGHBORS[i];
+      const invited=data.invited.includes(id);
+      const position=invited?[[.4,2.1],[1.8,2.7],[3.1,2.1]][i]:p.position;
+      if(g.userData.destination) g.userData.destination.set(position[0],.79,position[1]);
+      else g.position.set(position[0],.79,position[1]);
+      g.userData.isInvited=invited;
+    });
+    setChapter?.(d);
   }
   function award(amount) {
     data.credits+=amount;
@@ -274,37 +285,38 @@ export function createStory(ctx) {
       const p=PAPERS.find(x=>x.id===id);
       if(!p||data.received.includes(id))return;
       data.received.push(id);award(8);
+      sound?.('paper');
       showNote('БУМАГА ГОТОВА',p.tip);
       announce('Пачка собрана. +8 очков помощи.');
     } else if(action==='answer'&&data.day===3) {
       const q=CASES[data.answers.length];
       if(!q)return;
-      if(Number(id)!==q.correct){showNote('ПОДУМАЙ ЕЩЁ','Подсказка: '+q.explanation);return;}
-      data.answers.push(data.answers.length);award(6);
+      if(Number(id)!==q.correct){sound?.('error');showNote('ПОДУМАЙ ЕЩЁ','Подсказка: '+q.explanation);return;}
+      data.answers.push(data.answers.length);award(6);sound?.('correct');
       showNote('ВЕРНО',q.explanation);
       announce('Ситуация решена. +6 очков помощи.');
     } else if(action==='bench'&&data.day===4&&!data.bench) {
       if(!['tree','square'].includes(id))return;
       if(data.credits<16){announce('Для скамейки нужно 16 очков помощи.');return}
-      data.bench=id;data.credits-=16;
+      data.bench=id;data.credits-=16;sound?.('build');
       showNote('НОВОЕ МЕСТО','У двора появилось место, где можно отдохнуть. Скамейка останется на выбранном участке.');
     } else if(action==='book'&&data.day===5) {
       const p=BOOKS.find(x=>x.id===id);
       if(!p||data.bookIds.includes(id))return;
-      data.bookIds.push(id);award(7);
+      data.bookIds.push(id);award(7);sound?.('paper');
       showNote('КНИГА ПОЙДЁТ ДАЛЬШЕ',p.detail);
     } else if(action==='plant'&&data.day===6) {
       const p=PLANTS.find(x=>x.id===id);
       if(!p||data.planted.includes(id))return;
       if(data.credits<10){announce('Для растения нужно 10 очков помощи.');return}
-      data.planted.push(id);data.credits-=10;
+      data.planted.push(id);data.credits-=10;sound?.('plant');
       showNote('ЗЕЛЕНИ БОЛЬШЕ','Растение останется во дворе. Для настоящей посадки важно подобрать вид под место, почву и климат.');
     } else if(action==='invite'&&data.day===7) {
       const p=NEIGHBORS.find(x=>x.id===id);
       if(!p||data.invited.includes(id))return;
-      data.invited.push(id);award(5);
+      data.invited.push(id);award(5);sound?.('build');
       if(data.invited.length===3){
-        data.final=true;
+        data.final=true;sound?.('finish');
         showNote('СОСЕДСКИЙ ДЕНЬ','Все трое придут на встречу. Двор не стал идеальным, но теперь здесь есть место для людей и полезных привычек.');
       } else showNote('ГОСТЬ ПРИГЛАШЁН',p.name+' сможет увидеть, что нового появилось во дворе.');
     } else return;
@@ -313,9 +325,10 @@ export function createStory(ctx) {
   function nextDay() {
     if(!ready()||data.day===7)return;
     data.day++;
+    sound?.('chapter');
     save();render();
     announce('День '+data.day+': '+DAYS[data.day-1].title);
-    el.panel.scrollIntoView({behavior:'smooth',block:'start'});
+    el.panel.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
   }
   function interact(key) {
     const [action,id]=String(key||'').split(':');
