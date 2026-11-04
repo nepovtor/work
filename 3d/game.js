@@ -101,7 +101,7 @@ function refreshHUD(){
   els.countSorted.textContent=count+' '+(count===1?'вещь':count>=2&&count<=4?'вещи':'вещей');
   const countPaper=items.filter(x=>x.paper&&state.sorted.has(x.id)).length;
   els.countPaper.textContent=countPaper+' '+(countPaper===1?'бумажный предмет':countPaper>=2&&countPaper<=4?'бумажных предмета':'бумажных предметов');
-  els.dayTag.textContent='ДЕНЬ '+String(dayNumber()).padStart(2,'0');
+  els.dayTag.textContent='ДЕНЬ '+String(activeChapter).padStart(2,'0')+' / 07';
   const inactive=state.sorting||count===items.length||activeChapter!==1;
   els.binList.querySelectorAll('button').forEach(btn=>btn.disabled=inactive);
   if(els.sceneBinBar){
