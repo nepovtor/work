@@ -251,7 +251,8 @@ function roundedPlatform(w,d,r=.7) {
   g.rotateX(-Math.PI/2);
   return g;
 }
-const plinth=addMesh(scene,roundedPlatform(24.4,18,.8),mat.soil,0,.53,0);
+// Lower the extruded base below its grass top; previously it occluded paths and ground detailing.
+const plinth=addMesh(scene,roundedPlatform(24.4,18,.8),mat.soil,0,-.28,0);
 const bed=box(scene,23.6,.18,17.2,mat.grass,0,.53,0);
 const ground=box(scene,200,.09,200,M('#d7e4d5'),0,-.65,0,false);ground.receiveShadow=true;
 // Pathways are actual meshes with variation, not a printed background.
