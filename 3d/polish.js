@@ -7,8 +7,9 @@
 export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root,resize}) {
   const key=new URLSearchParams(location.search).has('qa') ? 'ecoFarm3D.settings.qa' : 'ecoFarm3D.settings.v1';
   const saved=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{return {}}})();
-  const lowByDefault=(navigator.hardwareConcurrency||6)<=4 || (navigator.deviceMemory||8)<=3 ||
-    matchMedia('(max-width: 600px)').matches;
+  // A narrow screen does not imply a weak GPU. Most modern iPhones can render
+  // the courtyard above 1x Retina; sustained low FPS may still enable eco mode.
+  const lowByDefault=(navigator.hardwareConcurrency||6)<=4 || (navigator.deviceMemory||8)<=3;
   let eco=typeof saved.eco==='boolean'?saved.eco:lowByDefault;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const actors=[],birds=[],leafActors=[],waterDrops=[];
@@ -27,10 +28,29 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
   function remember(){
     try {localStorage.setItem(key,JSON.stringify({eco}))}catch{}
   }
+  function updateResolution(){
+    if(!renderer)return;
+    const w=Math.max(1,root?.clientWidth||1),h=Math.max(1,root?.clientHeight||1);
+    const nativeRatio=Math.max(1,window.devicePixelRatio||1);
+    // Consistent on-screen sharpness without unbounded GPU fill cost.
+    const pixelBudget=eco?1400000:2800000;
+    const pixelRatio=Math.max(1,Math.min(nativeRatio,eco?1.5:2.0,Math.sqrt(pixelBudget/(w*h))));
+    if(Math.abs(renderer.getPixelRatio()-pixelRatio)>.025)renderer.setPixelRatio(pixelRatio);
+  }
+  function hudIcon(name){
+    const common='width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+    const paths={
+      sound:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/>',
+      mute:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6m0-6-5 6"/>',
+      quality:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17Z"/>',
+      eco:'<path d="M4 16c7 0 13-3 16-12 1 10-2 16-10 16-3 0-5-1-6-4Z"/><path d="M4 21c3-6 7-10 13-13"/>'
+    };
+    return '<svg '+common+' aria-hidden="true">'+(paths[name]||paths.quality)+'</svg>';
+  }
   function quality(flag){
     eco=!!flag;
     if(renderer){
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,eco?1:1.6));
+      updateResolution();
       renderer.shadowMap.enabled=!eco;
       renderer.shadowMap.autoUpdate=!eco;
       if(sun){
@@ -47,7 +67,7 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
       btn.setAttribute('aria-pressed',String(eco));
       btn.setAttribute('aria-label',eco?'Экономный режим включён. Вернуть высокое качество.':'Включить экономный режим отображения');
       btn.title=eco?'Включить полное качество':'Экономный режим: меньше теней и анимаций';
-      btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+(eco?'◔':'▧')+'</span><span>'+(eco?'Экономный':'Графика')+'</span>';
+      btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+hudIcon(eco?'eco':'quality')+'</span><span>'+(eco?'Экономный':'Графика')+'</span>';
     }
   }
   // Environmental lighting responds to story chapters, not a punishing real-time clock.
@@ -261,7 +281,7 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
     btn.setAttribute('aria-pressed',String(audioOn));
     btn.setAttribute('aria-label',audioOn?'Выключить звуковые эффекты':'Включить звуковые эффекты');
     btn.title=audioOn?'Выключить звуки':'Включить звуки (без музыки)';
-    btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+(audioOn?'◖':'◌')+'</span><span>'+(audioOn?'Звук вкл':'Звук выкл')+'</span>';
+    btn.innerHTML='<span class="hud-control-icon" aria-hidden="true">'+hudIcon(audioOn?'sound':'mute')+'</span><span>'+(audioOn?'Звук вкл':'Звук выкл')+'</span>';
   }
   function initControls(){
     const soundBtn=document.getElementById('soundToggle');
@@ -329,9 +349,10 @@ export function createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,bo
     return {stage:3,eco,quality:eco?'economy':'full',soundEnabled:audioOn,
       actors:actors.length,activeActors:actors.filter(x=>x.visible).length,invitedActors:actors.filter(x=>x.userData.isInvited).length,
       birds:birds.length,leaves:leafActors.length,
-      chapter:selectedSky,rendered:!!renderer};
+      chapter:selectedSky,rendered:!!renderer,
+      dpr:renderer?renderer.getPixelRatio():0,nativeDpr:window.devicePixelRatio||1};
   };
   // Read-only, predictable telemetry for the shipped QA page.
   Object.defineProperty(window,'__eco3dDiagnostics',{configurable:true,value:diagnostics});
-  return {createCharacter:makeCharacter,tick,setChapter,sound,quality,toggleSound,diagnostics};
+  return {createCharacter:makeCharacter,tick,setChapter,sound,quality,toggleSound,updateResolution,isEconomy:()=>eco,diagnostics};
 }

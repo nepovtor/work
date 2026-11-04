@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Эко-Ферма · Проверка Liquid Glass</title>
+<style>
+body{font:14px/1.6 system-ui,sans-serif;color:#183d2a;background:#e8eee7;max-width:940px;margin:0 auto;padding:20px}
+h1{font-size:24px;letter-spacing:-.8px}p{color:#526a57}
+#summary{background:#fff;border-left:5px solid #609a76;border-radius:9px;padding:14px;font-weight:750}
+#results{list-style:none;padding:0;display:grid;gap:7px}
+li{padding:10px 13px;background:#fff;border-left:4px solid #64a37a;border-radius:9px}
+li.fail{border-left-color:#bf6257}
+.frame{overflow:auto;background:#d1dfd5;border-radius:16px;padding:13px}
+iframe{display:block;margin:0 auto;width:390px;height:760px;border:1px solid #b5cdb9;border-radius:14px;background:#cad9cd}
+a{color:#23583b}
+</style></head><body>
+<h1>Этап 2 · Liquid Glass и мобильный интерфейс</h1>
+<p>Изолированная проверка компоновки, контраста, стеклянных элементов, сортировки и перехода на следующий день. Сохранения игрока не затрагиваются.</p>
+<div id="summary">Запускаем проверки…</div><ol id="results"></ol>
+<div class="frame"><iframe id="game" title="Мобильная Эко-Ферма"></iframe></div>
+<p><a href="./">Вернуться в игру</a></p>
+<script>
+(async()=>{
+const f=document.getElementById('game'),doc=()=>f.contentDocument,win=()=>f.contentWindow,res=document.getElementById('results'),summary=document.getElementById('summary');
+const keys=['ecoFarm3D.stage1.qa','ecoFarm3D.story.qa','ecoFarm3D.settings.qa'];const tested=[];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const assert=(v,msg)=>{if(!v)throw Error(msg)};
+async function wait(fn,ms=22000){let start=Date.now();while(Date.now()-start<ms){try{const v=fn();if(v)return v}catch{}await sleep(75)}throw Error('истекло время ожидания '+JSON.stringify(win().__ecoErrors||[]))}
+async function test(name,cb){try{const d=await cb();const li=document.createElement('li');li.textContent='✓ '+name+(d?' — '+d:'');res.append(li);tested.push(true)}catch(e){const li=document.createElement('li');li.className='fail';li.textContent='✕ '+name+' — '+e.message;res.append(li);tested.push(false);throw e}}
+const rect=s=>doc().querySelector(s)?.getBoundingClientRect();
+const selectName=n=>{const b=[...doc().querySelectorAll('.object-item')].find(x=>x.textContent.includes(n));assert(b,'нет '+n);b.click()};
+const bin=id=>{const b=doc().querySelector('[data-bin-scene="'+id+'"]');assert(b&&!b.disabled,'нет контейнера '+id);b.click()};
+try{
+keys.forEach(k=>localStorage.removeItem(k));
+f.src='./index.html?qa=1';
+await test('Загружены игра и все категории',async()=>{
+  await wait(()=>doc()?.querySelectorAll('.object-item').length===6&&win().__eco3dBinAudit,25000);
+  assert(doc().querySelectorAll('.scene-bin-chip').length===5,'нет пяти категорий');
+  assert(win().__eco3dBinAudit().rasterSigns===0,'растровые 3D-вывески');
+});
+for(const width of [320,360,390,430,768,1024]){
+  await test(width+'px: игра, стеклянная навигация и нижняя панель',async()=>{
+    f.style.width=width+'px';await sleep(310);
+    const d=doc(),w=win(),header=rect('.masthead'),world=rect('.world'),panel=rect('.panel'),bar=rect('.scene-bin-bar');
+    assert(Math.abs(w.innerWidth-width)<4,'ширина iframe неверная');
+    assert(d.body.scrollWidth<=width+3,'горизонтальное переполнение '+d.body.scrollWidth);
+    assert(world.height>220,'сцена слишком мала');
+    assert(panel.height>105,'недостаточно места для заданий');
+    assert(bar.left>=world.left-2&&bar.right<=world.right+2,'контейнеры не помещаются в сцене');
+    assert(bar.top>=world.top-2&&bar.bottom<=world.bottom+2,'контейнеры обрезаны');
+    assert(header.width<=width+3,'шапка выходит за экран');
+    assert(d.querySelector('.object-item').getBoundingClientRect().height>=44,'карточки слишком малы');
+    return 'нет обрезки и перекрытия';
+  });
+}
+f.style.width='390px';await sleep(320);
+await test('Liquid Glass только на элементах управления',()=>{
+  const d=doc(),w=win(),glass=d.querySelector('.scene-bin-bar');
+  const style=w.getComputedStyle(glass);
+  assert(style.backdropFilter!=='none'||style.webkitBackdropFilter!=='none','нет эффекта материала');
+  assert(w.getComputedStyle(d.querySelector('.panel')).backdropFilter==='none','содержимое тоже размыто');
+  assert(d.querySelector('.masthead').getBoundingClientRect().top<=d.querySelector('.world').getBoundingClientRect().top+70,'шапка занимает отдельный экран');
+  return 'стекло на навигации, контент остаётся читаемым';
+});
+await test('Только нужные элементы камеры видимы на телефоне',()=>{
+  const d=doc(),w=win();
+  const reset=d.querySelector('#cameraReset');
+  assert(reset.getBoundingClientRect().height>=42,'сброс камеры слишком мал');
+  for(const id of ['cameraLeft','cameraRight']){
+    assert(w.getComputedStyle(d.getElementById(id)).display==='none','дублирующий поворот видим');
+  }
+  assert(d.querySelectorAll('.world-settings button').length===2,'нет настроек');
+});
+await test('Пять названий читаемы независимо от масштаба 3D',()=>{
+  const d=doc(),w=win();
+  for(const [i,name] of ['Бумага','Стекло','Пластик','Металл','Батарейки'].entries()){
+    const b=d.querySelectorAll('.scene-bin-chip')[i],cs=w.getComputedStyle(b),r=b.getBoundingClientRect();
+    assert(b.textContent.includes(name),'нет '+name);
+    assert(parseFloat(cs.fontSize)>=12,'мелкий шрифт '+name);
+    assert(r.width>105&&r.height>=44,'маленькая кнопка '+name);
+  }
+});
+await test('Первый день не перекрыт длинным описанием',()=>{
+  assert(doc().body.dataset.storyChapter==='1','не первая глава');
+  assert(doc().body.dataset.storyReady==='false','стартовый прогресс неверный');
+  assert(win().getComputedStyle(doc().getElementById('storyPanel')).display==='none','дублирующее описание закрывает предметы');
+});
+await test('Выбор и сортировка на стеклянной панели',async()=>{
+  selectName('Старая газета');bin('paper');
+  await wait(()=>doc().getElementById('missionCount').textContent.trim()==='1 / 6',9000);
+  assert(doc().querySelectorAll('.object-item[aria-pressed="true"]').length===0,'после сортировки осталась выбранная карточка');
+});
+await test('Ошибка не меняет прогресс',()=>{
+  selectName('Картонная коробка');bin('glass');
+  assert(doc().getElementById('missionCount').textContent.trim()==='1 / 6','начисление за неправильный контейнер');
+});
+await test('После шести предметов появляется переход к новой главе',async()=>{
+  const items=[['Картонная коробка','paper'],['ПЭТ-бутылка','plastic'],['Стеклянная банка','glass'],['Металлическая банка','metal'],['Батарейка','special']];
+  for(let i=0;i<items.length;i++){
+    selectName(items[i][0]);bin(items[i][1]);
+    await wait(()=>doc().getElementById('missionCount').textContent.trim()===(i+2)+' / 6',9000);
+  }
+  await wait(()=>doc().body.dataset.storyReady==='true');
+  assert(win().getComputedStyle(doc().getElementById('storyPanel')).display!=='none','не появился переход');
+  assert(doc().querySelector('[data-story-action="next"]'),'нет кнопки следующей главы');
+});
+await test('Второй день открывается без лишних контейнеров',async()=>{
+  doc().querySelector('[data-story-action="next"]').click();
+  await wait(()=>doc().body.dataset.storyChapter==='2');
+  assert(doc().getElementById('sceneBinBar').hidden,'контейнеры не спрятались');
+  assert(!doc().getElementById('storyPanel').hidden,'сюжетная панель скрыта');
+});
+}catch(e){}
+finally{
+  const passed=tested.filter(Boolean).length;
+  summary.textContent='Проверки: '+passed+' / '+tested.length+' успешно'+(passed===tested.length?' — сценарий пройден':' — обнаружена проблема');
+  summary.style.borderLeftColor=passed===tested.length?'#589b6f':'#c16f58';
+  keys.forEach(k=>localStorage.removeItem(k));
+}
+})();
+</script></body></html>

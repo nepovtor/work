@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createStory } from './story.js';
-import { createPolish } from './polish.js?v=2';
+import { createPolish } from './polish.js?v=3';
+import { createArtWorld } from './art-world.js';
 
 /**
  * Эко-Ферма 3D — первый игровой фрагмент.
@@ -78,6 +79,18 @@ function hideNote(){els.learningNote.hidden=true}
 els.closeNote.addEventListener('click',hideNote);
 els.noteNext.addEventListener('click',hideNote);
 
+function itemIcon(id){
+  // Original crisp vector icons; accessible name remains in the button text.
+  const drawings={
+    newspaper:'<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M7.5 7.5h5v5h-5zM15 7.5h2M15 10h2M7.5 15.5H17M7.5 18H17"/>',
+    box:'<path d="M12 2.5 3 7.5v9l9 5 9-5v-9l-9-5Z"/><path d="m3 7.5 9 5 9-5M12 12.5v9M7.5 5l9 5"/>',
+    bottle:'<path d="M10 2h4v3h-4zM9 5.5h6v2.5c0 2 3 3.5 3 6v6.5c0 1-.8 1.5-1.5 1.5h-9C6.8 22 6 21.5 6 20.5V14c0-2.5 3-4 3-6V5.5Z"/><path d="M6 14h12M6 18h12"/>',
+    jar:'<path d="M5 4h14v3H5zM7 7h10c1 2 2 3.5 2 6v6.5A2.5 2.5 0 0 1 16.5 22h-9A2.5 2.5 0 0 1 5 19.5V13c0-2.5 1-4 2-6Z"/><path d="M5 15h14"/>',
+    can:'<ellipse cx="12" cy="4.5" rx="6.5" ry="2.2"/><path d="M5.5 4.5v15c0 1.5 3 2.5 6.5 2.5s6.5-1 6.5-2.5v-15M5.5 9.5c1.8 2.4 11.2 2.4 13 0M8 16h8"/>',
+    battery:'<rect x="5" y="5" width="14" height="16" rx="2"/><path d="M10 2h4v3M12 9v7M8.5 12.5h7"/>'
+  };
+  return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(drawings[id]||drawings.box)+'</svg>';
+}
 function renderInventory(){
   els.objectList.replaceChildren();
   items.forEach((item)=>{
@@ -88,7 +101,7 @@ function renderInventory(){
     if(done)btn.classList.add('done');
     btn.disabled=done;
     btn.setAttribute('aria-pressed', String(state.selected===item.id));
-    btn.innerHTML='<span class="object-icon" aria-hidden="true">'+(done?'✓':item.short)+'</span><span class="object-label">'+item.name+'</span><span class="object-arrow" aria-hidden="true">'+(done?'✓':'→')+'</span>';
+    btn.innerHTML='<span class="object-icon" aria-hidden="true">'+(done?'✓':itemIcon(item.id))+'</span><span class="object-label">'+item.name+'</span><span class="object-arrow" aria-hidden="true">'+(done?'✓':'→')+'</span>';
     btn.addEventListener('click',()=>selectItem(item.id));
     els.objectList.appendChild(btn);
   });
@@ -138,7 +151,7 @@ function setCamera() {
 const renderer = (()=>{
   try {
     const r=new THREE.WebGLRenderer({alpha:false,antialias:true,powerPreference:'default'});
-    r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.65));
+    r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
     r.shadowMap.enabled=true;
     r.shadowMap.type=THREE.PCFSoftShadowMap;
     r.outputColorSpace=THREE.SRGBColorSpace;
@@ -177,7 +190,11 @@ const mat={
 const allPickables=[],itemGroups=new Map(),binGroups=new Map();
 const sways=[],animals=[];
 function addMesh(parent,geometry,material,x=0,y=0,z=0,cast=true){
-  const o=new THREE.Mesh(geometry,material);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;parent.add(o);return o;
+  const o=new THREE.Mesh(geometry,material);o.position.set(x,y,z);
+  // Tiny details still render, but no longer occupy individual shadow-map draws.
+  if(cast && !geometry.boundingSphere)geometry.computeBoundingSphere();
+  o.castShadow=cast && (geometry.boundingSphere?.radius??1)>=.27;
+  o.receiveShadow=true;parent.add(o);return o;
 }
 function box(parent,w,h,d,material,x=0,y=0,z=0){
   return addMesh(parent,new THREE.BoxGeometry(w,h,d),material,x,y,z);
@@ -192,39 +209,40 @@ function group(parent,x=0,y=0,z=0){const g=new THREE.Group();g.position.set(x,y,
 function markClickable(root,key,value){
   root.traverse(node=>{if(node.isMesh){node.userData[key]=value;allPickables.push(node)}});
 }
-function textureText(text,{bg='#ffffff',fg='#365244',size=58,weight=800,width=560,height=130}={}){
-  const c=document.createElement('canvas');c.width=width;c.height=height;const cx=c.getContext('2d');
-  cx.fillStyle=bg;cx.fillRect(0,0,width,height);
-  cx.fillStyle=fg;cx.textAlign='center';cx.textBaseline='middle';cx.font=weight+' '+size+'px Manrope, system-ui, sans-serif';
-  cx.fillText(text,width/2,height/2);
-  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=2;return tex;
-}
-function planeLabel(parent,text,width=.9,height=.31,y=1.1,z=.55,bg='#f3ebdc',fg='#253e34'){
-  const texture=textureText(text,{bg,fg,size:112,width:780,height:220});
-  return addMesh(parent,new THREE.PlaneGeometry(width,height),
-    new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false}),0,y,z,false);
-}
-function binPlacard(text){
-  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=228;
-  const ctx=canvas.getContext('2d');
-  // Square fallback supports older iOS Safari, where Canvas2D.roundRect is absent.
-  function plaque(x,y,w,h,r,color){
-    ctx.fillStyle=color;ctx.beginPath();
-    if(typeof ctx.roundRect==='function')ctx.roundRect(x,y,w,h,r);
-    else ctx.rect(x,y,w,h);
-    ctx.fill();
+// Every container is identified by geometry, not tiny rasterized lettering.
+// Material names live in accessible, high-resolution HTML buttons.
+function binSymbol(parent,type){
+  const symbol=group(parent,0,1.05,.744);
+  symbol.name='material-pictogram:'+type;
+  const ink=new THREE.MeshBasicMaterial({color:0x243e31});
+  const ivory=new THREE.MeshBasicMaterial({color:0xfffdf3});
+  const detail=new THREE.MeshBasicMaterial({color:0x456451});
+  if(type==='paper'){
+    box(symbol,.43,.52,.034,ink,-.035,0,0);
+    box(symbol,.43,.52,.034,ink,.05,-.045,.015);
+    for(let i=0;i<3;i++)box(symbol,.24,.026,.013,ivory,.04,.105-i*.105,.043);
+  }else if(type==='glass'){
+    cylinder(symbol,.075,.075,.15,ink,0,.19,.025,12);
+    cylinder(symbol,.145,.118,.32,ink,0,-.055,.025,12);
+    cylinder(symbol,.105,.105,.035,ivory,0,.29,.025,12);
+    box(symbol,.075,.075,.035,ivory,0,-.02,.166);
+  }else if(type==='plastic'){
+    cylinder(symbol,.09,.09,.12,ink,0,.207,.025,10);
+    cylinder(symbol,.15,.145,.40,ink,0,-.07,.025,10);
+    cylinder(symbol,.11,.11,.055,detail,0,-.075,.17,10);
+    cylinder(symbol,.093,.093,.045,ivory,0,.295,.025,10);
+  }else if(type==='metal'){
+    cylinder(symbol,.177,.177,.46,ink,0,0,.025,12);
+    cylinder(symbol,.182,.182,.052,detail,0,.24,.025,12);
+    cylinder(symbol,.182,.182,.052,detail,0,-.24,.025,12);
+    box(symbol,.20,.05,.022,ivory,0,0,.207);
+  }else if(type==='special'){
+    box(symbol,.29,.48,.09,ink,0,-.025,.03);
+    box(symbol,.115,.065,.09,ink,0,.255,.03);
+    box(symbol,.17,.033,.014,ivory,0,-.025,.083);
+    box(symbol,.033,.17,.014,ivory,0,-.025,.084);
   }
-  plaque(4,4,760,220,34,'#214535');
-  plaque(12,12,744,204,27,'#fffdf0');
-  ctx.fillStyle='#1f3c2e';ctx.font='900 94px Manrope,system-ui,sans-serif';
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  const measured=ctx.measureText(text).width;
-  if(measured>670)ctx.font='900 '+Math.floor(94*670/measured)+'px Manrope,system-ui,sans-serif';
-  ctx.fillText(text,384,119);
-  const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;
-  const material=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false,toneMapped:false});
-  const sprite=new THREE.Sprite(material);sprite.scale.set(2.02,.65,1);sprite.renderOrder=25;
-  return sprite;
+  return symbol;
 }
 // A real solid diorama, not an image or a CSS mockup.
 function roundedPlatform(w,d,r=.7) {
@@ -237,7 +255,8 @@ function roundedPlatform(w,d,r=.7) {
   g.rotateX(-Math.PI/2);
   return g;
 }
-const plinth=addMesh(scene,roundedPlatform(24.4,18,.8),mat.soil,0,.53,0);
+// Lower the extruded base below its grass top; previously it occluded paths and ground detailing.
+const plinth=addMesh(scene,roundedPlatform(24.4,18,.8),mat.soil,0,-.28,0);
 const bed=box(scene,23.6,.18,17.2,mat.grass,0,.53,0);
 const ground=box(scene,200,.09,200,M('#d7e4d5'),0,-.65,0,false);ground.receiveShadow=true;
 // Pathways are actual meshes with variation, not a printed background.
@@ -254,12 +273,8 @@ for(let i=0;i<7;i++){box(scene,2.55,.021,.045,mat.pathShade,-4.7,.75,-5.1+i*2.0)
 // Specks give the ground a deliberate, tactile material.
 function mulberry32(seed){return()=>{let t=seed+=0x6d2b79f5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296}}
 const rand=mulberry32(6914);
-for(let i=0;i<150;i++){
-  const x=(rand()-.5)*22.8,z=(rand()-.5)*16.2;
-  if(Math.abs(z-3.1)<2.1||Math.abs(x+4.7)<1.8||z< -4.3)continue;
-  const clump=group(scene,x,.78,z);
-  const blade=cylinder(clump,.04,.055,.14, i%3?mat.grassLight:mat.grassDark,0,0,0,5);blade.rotation.z=(rand()-.5)*.7;
-}
+// Foreground grass is already authored as a single InstancedMesh in art-world.js.
+// Removing this legacy per-blade mesh loop cuts dozens of needless draw calls.
 // Garden fencing — drawn as repeated geometry to avoid an asset dependency.
 function fence(startX,endX,z){
   for(let x=startX;x<endX;x+=.95){
@@ -271,19 +286,59 @@ function fence(startX,endX,z){
 fence(-11,-8.6,-8.2);fence(-1.5,10.9,-8.2);
 fence(-11,-9.8,8.0);fence(8.8,10.9,8.0);
 
+// Branching canopies in layered botanical greens, not uniform round blobs.
+// Shared instanced canopy materials: one tree now uses ~2 batched renderers,
+// rather than separate draw calls for every twig and leaf cluster.
+const leafPalette=['#456c54','#587d5f','#709174','#8da582','#607e67','#99ae85'];
+const treeBranchGeometry=new THREE.CylinderGeometry(.055,.115,1.35,6);
+const treeCanopyGeometry=new THREE.IcosahedronGeometry(1,1);
+const treeCanopyMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.94});
+const tempTreePart=new THREE.Object3D();
 function createTree(x,z,scale=1,index=0){
   const trunk=group(scene,x,.76,z);
-  const trunkBody=cylinder(trunk,.19,.27,2.1,mat.wood,0,1.01,0,7);
-  trunkBody.castShadow=true;
-  const root=group(trunk,0,1.7,0);
-  const palette=[M('#568969'),M('#70a274'),M('#83aa7d'),M('#8cac80'),M('#628f76')];
-  sphere(root,1.17,palette[index%palette.length],-.4,.38,0);
-  sphere(root,1.07,palette[(index+1)%palette.length],.58,.44,-.15);
-  sphere(root,.98,palette[(index+2)%palette.length],0,.94,.23);
-  sphere(root,.82,palette[index%palette.length],0,.15,.7);
-  root.rotation.z=(rand()-.5)*.07;
-  trunk.scale.setScalar(scale);sways.push({obj:root,base:root.rotation.z,phase:rand()*7,amp:.018+rand()*.022});
-  const shadow=addMesh(scene,new THREE.CircleGeometry(1.15,18),new THREE.MeshBasicMaterial({color:0x3b5b44,transparent:true,opacity:.12,depthWrite:false}),x,.742,z,false);
+  trunk.name='tree:'+index+':'+x;
+  cylinder(trunk,.155,.27,2.65,mat.wood,0,1.26,0,9);
+  const root=group(trunk,0,1.75,0),count=7+(index%3);
+  const branchMesh=new THREE.InstancedMesh(treeBranchGeometry,mat.wood,count);
+  branchMesh.name='tree:batched-branches';
+  branchMesh.castShadow=false;branchMesh.frustumCulled=false;
+  const leavesCount=count+Math.ceil(count/2)+1;
+  const leaves=new THREE.InstancedMesh(treeCanopyGeometry,treeCanopyMaterial,leavesCount);
+  leaves.name='tree:batched-canopy';leaves.castShadow=true;leaves.receiveShadow=true;
+  leaves.frustumCulled=false;
+  let leafIndex=0;
+  function leafPart(radius,materialIndex,px,py,pz,sx,sy,sz){
+    tempTreePart.position.set(px,py,pz);
+    tempTreePart.rotation.set(0,0,0);
+    tempTreePart.scale.set(radius*sx,radius*sy,radius*sz);
+    tempTreePart.updateMatrix();
+    leaves.setMatrixAt(leafIndex,tempTreePart.matrix);
+    leaves.setColorAt(leafIndex,new THREE.Color(leafPalette[materialIndex%leafPalette.length]));
+    leafIndex++;
+  }
+  for(let i=0;i<count;i++){
+    const angle=i*Math.PI*2/count+(index*.47);
+    const spread=.68+.20*(i%3);
+    const dx=Math.cos(angle)*spread,dz=Math.sin(angle)*spread;
+    const canopyY=.68+(i%3)*.23;
+    tempTreePart.position.set(dx*.43,.04,dz*.43);
+    tempTreePart.rotation.set(Math.sin(angle)*.58,0,-Math.cos(angle)*.58);
+    tempTreePart.scale.set(1,1,1);
+    tempTreePart.updateMatrix();branchMesh.setMatrixAt(i,tempTreePart.matrix);
+    leafPart(.66+(i%4)*.065,index+i,dx,canopyY,dz,1.03,.73,1.0);
+    if(i%2===0)leafPart(.39,index+i+3,dx*.78,canopyY+.38,dz*.78,.85,.68,1.04);
+  }
+  leafPart(.77,index+2,0,1.12,0,.93,.76,.96);
+  branchMesh.instanceMatrix.needsUpdate=true;
+  leaves.instanceMatrix.needsUpdate=true;
+  if(leaves.instanceColor)leaves.instanceColor.needsUpdate=true;
+  root.add(branchMesh,leaves);
+  root.rotation.z=(rand()-.5)*.045;
+  trunk.scale.setScalar(scale);
+  sways.push({obj:root,base:root.rotation.z,phase:rand()*7,amp:.008+rand()*.014});
+  const shadow=addMesh(scene,new THREE.CircleGeometry(1.16,24),
+    new THREE.MeshBasicMaterial({color:0x35513d,transparent:true,opacity:.09,depthWrite:false}),
+    x,.742,z,false);
   shadow.rotation.x=-Math.PI/2;shadow.scale.set(1.4,.9,1);
 }
 createTree(-10,0.8,1.2,1);createTree(-10.6,-5.5,.92,2);
@@ -338,7 +393,8 @@ function workshop(x,z) {
   box(h,4.35,.17,.95,mat.terracotta,0,2.05,2.07);
   // simple striped awning, angled toward plaza
   for(let i=-4;i<=4;i++)box(h,.47,.055,1.08,i%2?mat.cream:mat.terracotta,i*.49,2.12,2.13).rotation.x=-.08;
-  const board=addMesh(h,new THREE.PlaneGeometry(2.8,.66),new THREE.MeshBasicMaterial({map:textureText('М А С Т Е Р С К А',{bg:'#f5e5bf',fg:'#47604d',size:43,width:600,height:148})}),0,2.67,1.77,false);
+  // A simple timber facade band replaces an unreadable canvas-texture sign.
+  box(h,2.8,.17,.12,mat.woodLight,0,2.67,1.79);
 }
 workshop(6.9,-5.6);
 // Park bench and planters
@@ -371,22 +427,33 @@ const pickup=group(scene,2.25,.76,-2.25);
 box(pickup,11.1,.14,2.6,mat.pathShade,0,-.05,0);
 function createBin(spec){
   const b=group(scene,spec.x,.83,-2.15);
-  const plastic=M(spec.color,.68);
-  box(b,1.42,1.57,1.24,plastic,0,.78,0);
-  box(b,1.51,.18,1.35,M(spec.color,.55),0,1.61,0);
+  const plastic=new THREE.MeshPhysicalMaterial({color:spec.color,roughness:.44,metalness:.035,clearcoat:.15,clearcoatRoughness:.5});
+  const main=addMesh(b,new THREE.BoxGeometry(1.42,1.57,1.24),plastic,0,.78,0);
+  main.castShadow=true;
+  box(b,1.51,.18,1.35,M(spec.color,.5),0,1.61,0);
+  box(b,1.36,.045,1.19,M('#344b3e',.88),0,1.49,0);
+  box(b,1.3,.04,.035,M('#d8ddd1',.75),0,1.55,.68);
+  for(const side of [-1,1]){
+    cylinder(b,.047,.047,.24,mat.charcoal,side*.49,1.60,-.60,10).rotation.x=Math.PI/2;
+    box(b,.075,1.20,.06,M(spec.color,.8),side*.61,.79,.645);
+  }
   box(b,.93,.1,.12,mat.charcoal,0,1.67,.56);
   box(b,1.24,.62,.055,mat.cream,0,1.04,.652);
-  planeLabel(b,spec.label,1.23,.5,1.04,.689,'#fffdf2','#1e3e2b');
-  const placard=binPlacard(spec.id==='special'?'ОСОБЫЙ СБОР':spec.label);
-  placard.position.set(0,2.27,.10);b.add(placard);
-  for(const s of [-1,1])cylinder(b,.145,.145,.11,mat.charcoal,s*.49,.12,.45,12).rotation.z=Math.PI/2;
+  // Flat white enamel panel: the distinct, high-contrast 3D emblem is a mesh.
+  box(b,1.24,.68,.06,new THREE.MeshBasicMaterial({color:0xfffdf3}),0,1.05,.678);
+  binSymbol(b,spec.id);
+  for(const side of [-1,1]){
+    cylinder(b,.145,.145,.11,mat.charcoal,side*.49,.12,.45,12).rotation.z=Math.PI/2;
+    cylinder(b,.052,.052,.12,M('#c7c9c1',.55,.28),side*.49,.12,.515,12).rotation.z=Math.PI/2;
+  }
   const h=box(b,.34,.14,.14,M(spec.color),0,1.52,-.69);
   h.rotation.x=.25;
   markClickable(b,'binId',spec.id);
   binGroups.set(spec.id,b);
 }
 binSpecs.forEach(createBin);
-const binTitle=addMesh(scene,new THREE.PlaneGeometry(4.6,.75),new THREE.MeshBasicMaterial({map:textureText('ПУНКТ РАЗДЕЛЬНОГО СБОРА',{bg:'#f4e7cf',fg:'#425844',size:41,width:1024,height:150}),side:THREE.DoubleSide}),2.15,2.91,-3.13,false);
+// The recycling point relies on the crisp DOM category names, not a blurred banner.
+box(scene,4.6,.19,.13,mat.woodLight,2.15,2.85,-3.13);
 box(scene,4.7,.13,.1,mat.woodLight,2.15,2.47,-3.2);
 for(let s of [.05,4.32])box(scene,.12,2.6,.12,mat.woodLight,s,.95,-3.22);
 // Details: lamp, flowerbeds and freestanding sign
@@ -400,7 +467,9 @@ lamp(-7.6,3.3);lamp(9.7,-.7);
 const sign=group(scene,-1.4,.71,-7.1);
 box(sign,.14,1.6,.14,mat.wood,0,.8,0);
 box(sign,2.7,1.1,.12,mat.woodLight,0,1.72,0);
-addMesh(sign,new THREE.PlaneGeometry(2.5,.9),new THREE.MeshBasicMaterial({map:textureText('ДВОР 01',{bg:'#f3e2c1',fg:'#315441',size:66})}),0,1.72,.085,false);
+// Quiet timber information board; no unreadable 3D text texture.
+box(sign,2.42,.08,.045,mat.wood,0,1.93,.10);
+box(sign,2.42,.08,.045,mat.wood,0,1.55,.10);
 
 // Object-shaped 3D props. Each one remains a selectable group in the scene.
 function makeNewspaper(g) {
@@ -643,13 +712,16 @@ function resize(){
   const viewWidth=aspect<1.15?(w<650?29.2:31.3):Math.min(38,27+4*aspect);
   const viewHeight=viewWidth/aspect;
   camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=viewHeight/2;camera.bottom=-viewHeight/2;
-  camera.zoom=cameraZoom;camera.updateProjectionMatrix();renderer.setSize(w,h,false);
+  camera.zoom=cameraZoom;camera.updateProjectionMatrix();
+  polish?.updateResolution();
+  renderer.setSize(w,h,false);
 }
 const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
 if(observer)observer.observe(els.renderHost);
 window.addEventListener('resize',resize);
 const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const clock=new THREE.Clock();
+let artwork=null;
 let visible=true;
 document.addEventListener('visibilitychange',()=>{visible=!document.hidden});
 function tick(){
@@ -677,8 +749,33 @@ function tick(){
     }
   }
   polish?.tick(time,dt);
+  artwork?.tick(time,dt,polish?.isEconomy());
   renderer.render(scene,camera);
 }
+if(new URLSearchParams(location.search).has('qa')) {
+  // Test-only structural check: no sign uses canvas/raster text.
+  Object.defineProperty(window,'__eco3dBinAudit',{configurable:true,value:()=>{
+    let rasterSigns=0;
+    scene.traverse(obj=>{
+      if(!obj.isMesh&&!obj.isSprite)return;
+      const list=Array.isArray(obj.material)?obj.material:[obj.material];
+      for(const material of list){if(material?.map?.isCanvasTexture)rasterSigns++;}
+    });
+    return {
+      categoryCount:binGroups.size,
+      pictograms:[...binGroups.entries()].map(([id,g])=>({
+        id, count:g.children.filter(x=>x.name==='material-pictogram:'+id).length
+      })),
+      rasterSigns,
+      groundLayers:{plinthTop:plinth.position.y+.85,grassTop:bed.position.y+.09,pathTop:path1.position.y+.06},
+      render:{calls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0,
+        geometries:renderer?.info.memory.geometries||0,textures:renderer?.info.memory.textures||0},
+      rendered:!!renderer,
+      dpr:renderer?.getPixelRatio()||0
+    };
+  }});
+}
+artwork = createArtWorld({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh});
 polish = createPolish({THREE,scene,renderer,sun,hemisphere,mat,M,group,box,cylinder,sphere,addMesh,root:els.renderHost,resize});
 story = createStory({THREE,scene,mat,M,group,box,cylinder,sphere,bench,addMesh,state,itemGroups,allPickables,showNote,announce,
   createCharacter:polish.createCharacter,sound:polish.sound,setChapter:polish.setChapter,
