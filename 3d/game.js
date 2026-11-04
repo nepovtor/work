@@ -190,7 +190,11 @@ const mat={
 const allPickables=[],itemGroups=new Map(),binGroups=new Map();
 const sways=[],animals=[];
 function addMesh(parent,geometry,material,x=0,y=0,z=0,cast=true){
-  const o=new THREE.Mesh(geometry,material);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;parent.add(o);return o;
+  const o=new THREE.Mesh(geometry,material);o.position.set(x,y,z);
+  // Tiny details still render, but no longer occupy individual shadow-map draws.
+  if(cast && !geometry.boundingSphere)geometry.computeBoundingSphere();
+  o.castShadow=cast && (geometry.boundingSphere?.radius??1)>=.27;
+  o.receiveShadow=true;parent.add(o);return o;
 }
 function box(parent,w,h,d,material,x=0,y=0,z=0){
   return addMesh(parent,new THREE.BoxGeometry(w,h,d),material,x,y,z);
