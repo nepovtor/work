@@ -42,11 +42,11 @@ const els = {};
 for(const id of ['renderHost','loading','objectList','binList','progress','progressFill','missionCount','countSorted','countPaper','toast','learningNote','noteText','noteEyebrow','noteNext','closeNote','factText','complete','explore','again','restart','dayTag','cameraLeft','cameraRight','cameraReset','sunLabel']) {
   els[id] = document.getElementById(id);
 }
-const persisted = (()=>{try{return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')}catch{return {}}})();
+const persisted = (()=>{try{const value=JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');return value && typeof value==='object'?value:{}}catch{return {}}})();
 const validIDs = new Set(items.map(it=>it.id));
 const state = {
   startedAt: /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(persisted.startedAt||'')?persisted.startedAt:localDate(),
-  sorted: new Set((persisted.sorted||[]).filter(id=>validIDs.has(id))),
+  sorted: new Set((Array.isArray(persisted.sorted)?persisted.sorted:[]).filter(id=>validIDs.has(id))),
   selected: null,
   sorting: false,
   hasCompleted: !!persisted.hasCompleted
@@ -95,7 +95,7 @@ function refreshHUD(){
   els.missionCount.textContent=count+' / '+items.length;
   els.countSorted.textContent=count+' '+(count===1?'вещь':count>=2&&count<=4?'вещи':'вещей');
   const countPaper=items.filter(x=>x.paper&&state.sorted.has(x.id)).length;
-  els.countPaper.textContent=countPaper+' '+(countPaper===1?'бумажный предмет':'бумажных предмета');
+  els.countPaper.textContent=countPaper+' '+(countPaper===1?'бумажный предмет':countPaper>=2&&countPaper<=4?'бумажных предмета':'бумажных предметов');
   els.dayTag.textContent='ДЕНЬ '+String(dayNumber()).padStart(2,'0');
   els.binList.querySelectorAll('button').forEach(btn=>btn.disabled=state.sorting||count===items.length);
   renderInventory();
@@ -402,11 +402,8 @@ items.forEach((item)=>{
   const model=group(g,0,.05,0);
   makers[item.id](model);
   g.rotation.y=(rand()-.5)*.45;
-  if(!state.sorted.has(item.id)){
-    markClickable(g,'itemId',item.id);
-  }else{
-    g.visible=false;
-  }
+  markClickable(g,'itemId',item.id);
+  if(state.sorted.has(item.id)) g.visible=false;
   itemGroups.set(item.id,g);
 });
 // Restoration appears after the first three objects are sorted.
@@ -568,6 +565,7 @@ function tick(){
   renderer.render(scene,camera);
 }
 refreshHUD();
+const hour=new Date().getHours();els.sunLabel.textContent=hour<6?'Ночь':hour<12?'Тихое утро':hour<18?'День во дворе':'Вечер во дворе';
 save();
 setCamera();
 if(renderer){resize();els.loading.hidden=true;tick()}
