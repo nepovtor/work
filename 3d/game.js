@@ -539,7 +539,7 @@ function resetGame(){
 }
 els.cameraLeft.addEventListener('click',()=>{azimuth-=Math.PI/9;setCamera()});
 els.cameraRight.addEventListener('click',()=>{azimuth+=Math.PI/9;setCamera()});
-els.cameraReset.addEventListener('click',()=>{azimuth=Math.PI/4.6;setCamera()});
+els.cameraReset.addEventListener('click',()=>{azimuth=Math.PI/4.6;cameraZoom=1;setCamera()});
 
 const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
 function pickAt(clientX,clientY){
@@ -560,26 +560,69 @@ function pickAt(clientX,clientY){
 let dragging=false,startPointer=null,dragStartAngle=azimuth;
 if(renderer){
   const canvas=renderer.domElement;
+  const touches=new Map();
+  let pinchStartDistance=0,pinchStartZoom=1,pinching=false;
+  const distance=()=>{
+    const [a,b]=[...touches.values()];
+    return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0;
+  };
   canvas.addEventListener('pointerdown',(e)=>{
-    if(e.button!==0&&e.pointerType==='mouse')return;
-    dragging=false;startPointer={x:e.clientX,y:e.clientY};dragStartAngle=azimuth;
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     canvas.setPointerCapture(e.pointerId);
+    if(touches.size>=2){
+      pinching=true;dragging=true;startPointer=null;
+      pinchStartDistance=Math.max(1,distance());pinchStartZoom=cameraZoom;
+    }else{
+      dragging=false;startPointer={x:e.clientX,y:e.clientY};dragStartAngle=azimuth;
+    }
   });
   canvas.addEventListener('pointermove',(e)=>{
+    if(!touches.has(e.pointerId))return;
+    touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(touches.size>=2){
+      if(!pinching){
+        pinching=true;dragging=true;pinchStartDistance=Math.max(1,distance());pinchStartZoom=cameraZoom;
+      }
+      cameraZoom=THREE.MathUtils.clamp(pinchStartZoom*distance()/pinchStartDistance,.8,1.85);
+      setCamera();
+      return;
+    }
     if(!startPointer)return;
-    const deltaX=e.clientX-startPointer.x,deltaY=e.clientY-startPointer.y;
-    if(Math.hypot(deltaX,deltaY)>7)dragging=true;
-    if(dragging){azimuth=dragStartAngle-deltaX*.007;setCamera()}
+    const dx=e.clientX-startPointer.x,dy=e.clientY-startPointer.y;
+    if(Math.hypot(dx,dy)>8)dragging=true;
+    if(dragging){azimuth=dragStartAngle-dx*.007;setCamera()}
   });
   canvas.addEventListener('pointerup',(e)=>{
-    if(!startPointer)return;
-    if(!dragging)pickAt(e.clientX,e.clientY);
-    startPointer=null;dragging=false;
+    if(!touches.has(e.pointerId))return;
+    const tapped=!pinching&&!dragging&&touches.size===1;
+    touches.delete(e.pointerId);
     if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
+    if(tapped)pickAt(e.clientX,e.clientY);
+    if(touches.size===1){
+      const other=[...touches.values()][0];
+      startPointer={x:other.x,y:other.y};dragStartAngle=azimuth;
+      dragging=true;pinching=false;
+    }else if(!touches.size){
+      startPointer=null;dragging=false;pinching=false;pinchStartDistance=0;
+    }
   });
-  canvas.addEventListener('pointercancel',()=>{startPointer=null;dragging=false});
+  canvas.addEventListener('pointercancel',(e)=>{
+    touches.delete(e.pointerId);startPointer=null;dragging=false;pinching=false;
+  });
+  canvas.addEventListener('wheel',(e)=>{
+    e.preventDefault();
+    cameraZoom=THREE.MathUtils.clamp(cameraZoom*(e.deltaY>0?.94:1.06),.8,1.85);
+    setCamera();
+  },{passive:false});
   canvas.addEventListener('keydown',(e)=>{
-    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();azimuth+=(e.key==='ArrowLeft'?-1:1)*.12;setCamera()}
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+      e.preventDefault();azimuth+=(e.key==='ArrowLeft'?-1:1)*.12;setCamera();
+    }else if(e.key==='+'||e.key==='='){
+      e.preventDefault();cameraZoom=Math.min(1.85,cameraZoom*1.12);setCamera();
+    }else if(e.key==='-'){
+      e.preventDefault();cameraZoom=Math.max(.8,cameraZoom/1.12);setCamera();
+    }
   });
 }
 function resize(){
