@@ -6,7 +6,7 @@ import * as THREE from 'three';
  * Без генеративных картинок, шаблонных 3D-моделей и покупки ассетов.
  */
 
-const STORAGE_KEY = 'ecoFarm3D.stage1.v1';
+const STORAGE_KEY = new URLSearchParams(window.location.search).has('qa') ? 'ecoFarm3D.stage1.qa' : 'ecoFarm3D.stage1.v1';
 const items = [
   {id:'newspaper',name:'Старая газета',short:'ГА',type:'paper',paper:true,
    lesson:'Чистые и сухие газеты можно сдавать вместе с макулатурой. Из полученного сырья делают новую бумагу и картон.',
