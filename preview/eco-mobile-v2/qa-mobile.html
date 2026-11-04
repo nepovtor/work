@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Эко-Ферма 3D · Мобильный UX и контейнеры</title>
+<style>
+*{box-sizing:border-box}body{font:14px/1.6 system-ui,sans-serif;background:#edf1e8;color:#244632;max-width:960px;margin:auto;padding:22px}
+h1{font-size:24px;letter-spacing:-.6px}p{color:#657e6b}#summary{padding:15px;border-left:5px solid #779c79;border-radius:10px;background:#fff;font-weight:800}
+#results{padding:0;list-style:none;display:grid;gap:7px}
+li{background:white;border-left:4px solid #7aaa86;border-radius:8px;padding:10px 14px}
+li.fail{border-left-color:#c87561}iframe{display:block;margin:auto;width:320px;height:700px;background:#dee7d9;border:1px solid #bbccb8;border-radius:14px}
+.stage{background:#d6e0d1;border-radius:18px;padding:14px;overflow-x:auto}a{color:#286147}
+</style>
+</head>
+<body>
+<h1>Контейнеры и мобильное управление</h1>
+<p>Проверка читаемости названий контейнеров, раскладки, выбора предметов, ошибок, сохранения и переходов между главами. Используются временные тестовые сохранения.</p>
+<div id="summary" role="status">Тестирование началось…</div>
+<ol id="results"></ol>
+<div class="stage"><iframe title="Мобильная Эко-Ферма 3D" id="frame"></iframe></div>
+<p><a href="./">Вернуться в игру</a></p>
+<script>
+(async()=>{
+  const iframe=document.getElementById('frame'),summary=document.getElementById('summary'),results=document.getElementById('results');
+  const stage='ecoFarm3D.stage1.qa',story='ecoFarm3D.story.qa',settings='ecoFarm3D.settings.qa';
+  const pause=t=>new Promise(r=>setTimeout(r,t));
+  const doc=()=>iframe.contentDocument,win=()=>iframe.contentWindow;
+  const checks=[];
+  function check(condition,message){if(!condition)throw new Error(message)}
+  async function wait(fn,limit=17000){
+    const started=Date.now();
+    while(Date.now()-started<limit){try{const result=fn();if(result)return result}catch{}await pause(80)}
+    let detail='';try{detail=' ('+JSON.stringify(win().__ecoErrors||[]).slice(0,260)+')'}catch{}
+    throw Error('Время ожидания истекло'+detail);
+  }
+  async function run(name,fn){
+    try{const detail=await fn();const li=document.createElement('li');li.textContent='✓ '+name+(detail?' — '+detail:'');results.append(li);checks.push(true)}
+    catch(e){const li=document.createElement('li');li.className='fail';li.textContent='✕ '+name+' — '+e.message;results.append(li);checks.push(false);throw e}
+  }
+  const click=selector=>{const b=doc().querySelector(selector);check(b,'Не найдено '+selector);check(!b.disabled,'Кнопка отключена '+selector);b.click();};
+  const bins=()=>[...doc().querySelectorAll('#sceneBinBar .scene-bin-chip')];
+  try{
+    [stage,story,settings].forEach(k=>localStorage.removeItem(k));
+    iframe.src='./index.html?qa=1';
+    await run('3D-сцена и список предметов загружены',async()=>{
+      await wait(()=>doc().querySelectorAll('.object-item').length===6&&doc().querySelector('#sceneBinBar .scene-bin-chip'));
+      check(bins().length===5,'нужно пять контейнеров');return '6 предметов, 5 контейнеров';
+    });
+    for(const width of [320,360,390,430,768,1024]){
+      await run(width+' px: адаптивный игровой экран',async()=>{
+        iframe.style.width=width+'px';await pause(360);
+        const d=doc(),w=win(),shell=d.getElementById('app'),world=d.querySelector('.world'),panel=d.querySelector('.panel');
+        check(Math.abs(w.innerWidth-width)<=3,'ширина окна '+w.innerWidth);
+        check(d.body.scrollWidth<=width+3,'горизонтальное переполнение '+d.body.scrollWidth+' > '+width);
+        check(world.getBoundingClientRect().height>210,'слишком мало места для 3D');
+        check(panel.getBoundingClientRect().height>100,'панель заданий слишком мала');
+        const bar=d.getElementById('sceneBinBar');
+        check(!bar.hidden,'панель контейнеров исчезла');
+        const br=bar.getBoundingClientRect(),wr=world.getBoundingClientRect();
+        check(br.left>=wr.left-2&&br.right<=wr.right+2,'панель контейнеров обрезана');
+        check(br.bottom<=wr.bottom+2&&br.top>=wr.top-2,'панель контейнеров выходит из 3D');
+        return '3D-двор, задания и контейнеры на месте';
+      });
+    }
+    iframe.style.width='375px';
+    await pause(300);
+    await run('Все пять подписей хорошо читаются и нажимаются',async()=>{
+      const labels=['Бумага','Стекло','Пластик','Металл','Батарейки'];
+      bins().forEach((b,i)=>{
+        check(b.textContent.includes(labels[i]),'нет подписи '+labels[i]);
+        const cs=win().getComputedStyle(b);
+        check(parseFloat(cs.fontSize)>=12,'мелкий шрифт '+labels[i]+': '+cs.fontSize);
+        const bounds=b.getBoundingClientRect();
+        check(bounds.width>=110&&bounds.height>=48,'маленькая кнопка '+labels[i]);
+        check(cs.color!=='transparent','нет контраста');
+      });
+      check(bins().length===5,'неверное число подписей');
+      return labels.join(', ');
+    });
+    await run('Выбор предмета выделяется и подсказка обновляется',async()=>{
+      click('.object-item');
+      const text=doc().getElementById('selectedHint').textContent;
+      check(text.includes('Старая газета'),'выбранный предмет не показан: '+text);
+      check(doc().querySelector('.object-item[aria-pressed="true"]'),'нет состояния выбора');
+    });
+    await run('Ошибка сортировки даёт понятную подсказку',async()=>{
+      click('[data-bin-scene="glass"]');
+      check(doc().getElementById('missionCount').textContent.trim()==='0 / 6','ошибка изменила прогресс');
+      check(doc().querySelector('[data-bin-scene="paper"]').classList.contains('is-target'),'не выделен правильный контейнер');
+      check(!doc().getElementById('learningNote').hidden,'нет объяснения');
+    });
+    await run('Сортировка из панели работает и начисляет прогресс',async()=>{
+      click('[data-bin-scene="paper"]');
+      await wait(()=>doc().getElementById('missionCount').textContent.trim()==='1 / 6',7000);
+      check(doc().querySelectorAll('.object-item.done').length===1,'предмет не помечен обработанным');
+      return '1 / 6';
+    });
+    await run('Поворот камеры и возврат на исходный вид',async()=>{
+      const controls=['#cameraLeft','#cameraRight','#cameraReset'];
+      for(const control of controls){const b=doc().querySelector(control);check(b&&!b.disabled,'не работает '+control);b.click()}
+      check(!doc().getElementById('loading')?.textContent.includes('Не удалось'),'рендерер вернул ошибку');
+    });
+    await run('Настройки графики и звука имеют доступные кнопки',async()=>{
+      const d=win().__eco3dDiagnostics?.();
+      check(d&&d.stage===3,'не готов WebGL UI');
+      check(d.soundEnabled===false,'звук запущен автоматически');
+      const original=d.eco;click('#qualityToggle');
+      check(win().__eco3dDiagnostics().eco!==original,'графика не переключилась');
+      click('#qualityToggle');
+    });
+    await run('Сохранение сортировки после перезагрузки',async()=>{
+      const done=new Promise(resolve=>iframe.addEventListener('load',resolve,{once:true}));
+      win().location.reload();await done;
+      await wait(()=>doc().querySelectorAll('.object-item').length===6,20000);
+      check(doc().getElementById('missionCount').textContent.trim()==='1 / 6','прогресс потерян');
+      check(!doc().getElementById('sceneBinBar').hidden,'контейнеры пропали после перезагрузки');
+    });
+    await run('Переход на главу 2 отключает сортировку',async()=>{
+      const names=['Картонная коробка','ПЭТ-бутылка','Стеклянная банка','Металлическая банка','Батарейка'];
+      const binsMap=['paper','plastic','glass','metal','special'];
+      for(let i=0;i<names.length;i++){
+        const item=[...doc().querySelectorAll('.object-item')].find(b=>b.textContent.includes(names[i]));
+        check(item,'нет предмета '+names[i]);item.click();click('[data-bin-scene="'+binsMap[i]+'"]');
+        await wait(()=>doc().getElementById('missionCount').textContent.trim()===(i+2)+' / 6',7000);
+      }
+      await wait(()=>doc().querySelector('[data-story-action="next"]'));
+      click('[data-story-action="next"]');
+      await wait(()=>doc().getElementById('dayTag').textContent.includes('02'));
+      check(doc().getElementById('sceneBinBar').hidden,'контейнеры остались поверх других заданий');
+      check(doc().getElementById('stage1Wrap').hidden,'предметы остались в главе 2');
+      return 'День 2';
+    });
+    await run('Сброс возвращает исходный мобильный экран',async()=>{
+      click('#restart');
+      await wait(()=>!doc().getElementById('sceneBinBar').hidden);
+      check(doc().getElementById('missionCount').textContent.trim()==='0 / 6','сброс сортировки не работает');
+    });
+  }catch(e){}
+  finally{
+    const good=checks.filter(Boolean).length;
+    summary.textContent='Проверки: '+good+' / '+checks.length+' успешно'+(good===checks.length?' — мобильная версия готова':' — обнаружена проблема');
+    summary.style.borderLeftColor=good===checks.length?'#4c9365':'#bf6454';
+    [stage,story,settings].forEach(k=>localStorage.removeItem(k));
+  }
+})();
+</script>
+</body></html>
