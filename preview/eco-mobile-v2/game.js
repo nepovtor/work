@@ -41,7 +41,7 @@ const locations = {
   jar:[1.5, 5.8],can:[5, 4.8],battery:[8.1, 2.9]
 };
 const els = {};
-for(const id of ['renderHost','loading','objectList','binList','progress','progressFill','missionCount','countSorted','countPaper','toast','learningNote','noteText','noteEyebrow','noteNext','closeNote','factText','complete','explore','again','restart','dayTag','cameraLeft','cameraRight','cameraReset','sunLabel','sceneBinBar','sceneBinScroll','selectedHint']) {
+for(const id of ['renderHost','loading','objectList','binList','progress','progressFill','missionCount','countSorted','countPaper','toast','learningNote','noteText','noteEyebrow','noteNext','closeNote','factText','complete','explore','again','restart','dayTag','cameraLeft','cameraRight','cameraReset','sunLabel','sceneBinBar','sceneBinScroll','selectedHint','sceneBinStatus']) {
   els[id] = document.getElementById(id);
 }
 const persisted = (()=>{try{const value=JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');return value && typeof value==='object'?value:{}}catch{return {}}})();
@@ -109,6 +109,10 @@ function refreshHUD(){
     els.sceneBinBar.querySelectorAll('button').forEach(btn=>btn.disabled=inactive);
   }
   const selected=items.find(x=>x.id===state.selected);
+  if(els.sceneBinStatus){
+    els.sceneBinStatus.textContent=selected
+      ?selected.name+' · куда отнести?':'Сначала выбери предмет';
+  }
   if(els.selectedHint){
     els.selectedHint.classList.toggle('has-selection',!!selected);
     els.selectedHint.textContent=selected
