@@ -46,7 +46,16 @@
         try{const v=fn();if(v)return v}catch{}
         await pause(90);
       }
-      throw Error('Время ожидания истекло');
+      let diag='';
+      try {
+        const d=doc();
+        diag='document='+d?.readyState+
+          ', objects='+d?.querySelectorAll('.object-item').length+
+          ', canvas='+d?.querySelectorAll('canvas').length+
+          ', loading='+JSON.stringify(d?.getElementById('loading')?.textContent?.slice(0,120))+
+          ', errors='+JSON.stringify(frame.contentWindow.__ecoErrors||[]);
+      }catch(e){diag=String(e)}
+      throw Error('Время ожидания истекло ('+diag+')');
     };
     const doc=()=>frame.contentDocument;
     const count=()=>doc().getElementById('missionCount')?.textContent.trim();
@@ -54,7 +63,7 @@
       const btn=[...doc().querySelectorAll('.object-item')].find(x=>x.textContent.includes(name));
       if(!btn||btn.disabled)throw Error('Недоступен предмет: '+name);
       btn.click();
-      if(btn.getAttribute('aria-pressed')!=='true' && ![...doc().querySelectorAll('.object-item')].find(x=>x.textContent.includes(name))?.getAttribute('aria-pressed')==='true'){}
+
     };
     const drop=(type)=>{const bin=doc().querySelector('[data-bin="'+type+'"]');if(!bin)throw Error('Нет контейнера '+type);bin.click()};
     const waitCount=(n)=>until(()=>count()===n+' / 6',6500);
