@@ -203,8 +203,15 @@ function planeLabel(parent,text,width=.9,height=.31,y=1.1,z=.55,bg='#f3ebdc',fg=
 function binPlacard(text){
   const canvas=document.createElement('canvas');canvas.width=768;canvas.height=228;
   const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#214535';ctx.beginPath();ctx.roundRect(4,4,760,220,34);ctx.fill();
-  ctx.fillStyle='#fffdf0';ctx.beginPath();ctx.roundRect(12,12,744,204,27);ctx.fill();
+  // Square fallback supports older iOS Safari, where Canvas2D.roundRect is absent.
+  function plaque(x,y,w,h,r,color){
+    ctx.fillStyle=color;ctx.beginPath();
+    if(typeof ctx.roundRect==='function')ctx.roundRect(x,y,w,h,r);
+    else ctx.rect(x,y,w,h);
+    ctx.fill();
+  }
+  plaque(4,4,760,220,34,'#214535');
+  plaque(12,12,744,204,27,'#fffdf0');
   ctx.fillStyle='#1f3c2e';ctx.font='900 94px Manrope,system-ui,sans-serif';
   ctx.textAlign='center';ctx.textBaseline='middle';
   const measured=ctx.measureText(text).width;
